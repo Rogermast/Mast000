@@ -1,1 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mast Solución CCTV – v1.0</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #f5f7fa; padding: 20px; color: #333; }
+    h1, h2 { text-align: center; margin: 15px 0; color: #2c3e50; }
+    .page-wrapper { display: flex; flex-direction: column; gap: 20px; }
+    .top-section { display: grid; grid-template-columns: 280px 1fr; gap: 20px; }
+    .sidebar { background: white; padding: 16px; border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
+    .map-container { height: 500px; }
+    #map { height: 100%; width: 100%; border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
+    label { font-weight: bold; margin-right: 8px; display: block; margin-bottom: 6px; color: #2c3e50; }
+    select, button { padding: 8px 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
+    .sidebar select, .sidebar button { width: 100%; margin-bottom: 8px; }
+    button { color: white; }
+    .btn-device { background: #3498db; }
+    .btn-location { background: #2ecc71; }
+    .btn-save { background: #27ae60; }
+    .btn-load { background: #2980b9; }
+    .btn-export { background: #e67e22; }
+    .btn-delete { background: #e74c3c; font-size: 12px; padding: 6px 10px; }
+    .btn-calc { background: #9b59b6; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
+    th { background: #34495e; color: white; padding: 10px; text-align: left; }
+    td { padding: 10px; border-bottom: 1px solid #eee; }
+    tr:last-child td { border-bottom: none; }
+    .status { padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px; font-size: 14px; }
+    input[type="number"] { width: 80px; padding: 4px; }
+    .cam-item { display: inline-block; margin-right: 10px; }
+    #fileInput { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Mast Solución CCTV – v1.0</h1>
+  <div class="page-wrapper">
+    <div class="top-section">
+      <!-- Sidebar con controles de nodos -->
+      <div class="sidebar">
+        <h3>Configuración por Nodo</h3>
+        <label for="numNodos">Nodos:</label>
+        <input type="number" id="numNodos" min="1" max="5" value="1" />
+        <button class="btn-calc" onclick="generarNodosDesdeMapa()">Actualizar desde mapa</button>
+        <button class="btn-export" onclick="exportarConsolidado()">📤 Exportar consolidado</button>
+        <div id="nodosSection"></div>
+      </div>
 
+      <!-- Mapa principal -->
+      <div class="map-container">
+        <div id="map"></div>
+      </div>
+    </div>
+
+    <!-- Tablas de puntos y rutas -->
+    <input type="file" id="fileInput" accept=".json" onchange="loadProjectFromFile(event)">
+    <h2>Puntos del sistema</h2>
+    <table id="points-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Tipo</th>
+          <th>Nombre</th>
+          <th>Lat</th>
+          <th>Lng</th>
+          <th>Nodo</th>
+          <th>Comentario</th>
+        </tr>
+      </thead>
+      <tbody id="points-body"></tbody>
+    </table>
+
+    <h2>Resumen de materiales</h2>
+    <table class="summary-table">
+      <tr><th>Total cámaras</th><td id="totalCamaras">0</td></tr>
+      <tr><th>Total cables UTP</th><td id="totalCablesUTP">0</td></tr>
+      <tr><th>Cableado UTP en cámaras (m)</th><td id="utpCamaras">0.0</td></tr>
+      <tr><th>Cableado UTP en nodos (m)</th><td id="utpNodos">0.0</td></tr>
+      <tr><th>Total Cableado UTP (m)</th><td id="totalUTP">0.0</td></tr>
+      <tr><th>Total Tubería UTP (m)</th><td id="tuberiaUTP">0</td></tr>
+      <tr><th>Total Cableado AC (m)</th><td id="totalAC">0.0</td></tr>
+      <tr><th>Total Tubería AC (m)</th><td id="tuberiaAC">0</td></tr>
+      <tr><th>Total Tubería (UTP + AC) (m)</th><td id="tuberiaTotal">0</td></tr>
+    </table>
+
+    <div class="status" id="statusBar">• Haz clic en el mapa para agregar puntos. Asigna nodos desde la tabla o en la edición.</div>
+  </div>
+
+  <!-- Librerías -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+  <script>
+    // === TIPOS Y DATOS GLOBALES ===
+    const TIPOS = {
+      camera: { label: "Cámara", abbr: "C", color: "#f1c40f" },
+      speaker: { label: "Parlante IP", abbr: "P", color: "#9b59b6" },
+      switch: { label: "Switch", abbr: "SW", color: "#3498db" },
+      monitor: { label: "Monitor/NVR", abbr: "M", color: "#2c3e50" },
+      antenna: { label: "Antena", abbr: "A", color: "#27ae60" },
+      solar: { label: "Panel Solar", abbr: "PS", color: "#f39c12" }
+    };
+
+    let points = [];
+    let routes = [];
+    let nextId = 1;
+    let map = null;
+    let markersLayer = null;
+    let selectedPointId = null;
+
+    // === INICIALIZACIÓN ===
+    function initMap() {
+      map = L.map('map').setView([4.6097, -74.0817], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(map);
+      markersLayer = L.layerGroup().addTo(map);
+      map.on('click', handleMapClick);
+    }
+
+    // === MANEJO DE PUNTOS ===
+    function handleMapClick(e) {
+      const type = prompt("Tipo de punto?", "camera");
+      if (!type || !TIPOS[type]) return;
+      const nombre = prompt("Nombre (ej: C1, PS1):", "");
+      if (!nombre) return;
+      const nodo = prompt("Nodo (ej: N0, N1):", "N0");
+      const comentario = prompt("Comentario:", "");
+      addPoint(e.latlng.lat, e.latlng.lng, type, nombre, nodo, comentario);
+    }
+
+    function addPoint(lat, lng, type, nombre, nodo, comentario) {
+      const id = nextId++;
+      const marker = L.marker([lat, lng], {
+        icon: getIcon(type),
+        draggable: true
+      }).addTo(markersLayer).on('dragend', () => {
+        const pos = marker.getLatLng();
+        const point = points.find(p => p.id === id);
+        if (point) {
+          point.lat = pos.lat;
+          point.lng = pos.lng;
+          renderPointsTable();
+        }
+      });
+
+      points.push({ id, type, lat, lng, nombre, nodo, comentario, marker });
+      renderPointsTable();
+    }
+
+    function getIcon(type) {
+      const color = TIPOS[type]?.color || '#7f8c8d';
+      return L.divIcon({
+        html: `<div style="background:${color}; width:20px; height:20px; border-radius:50%; border:2px solid white; box-shadow:0 0 6px rgba(0,0,0,0.5);"></div>`,
+        iconSize: [20, 20], iconAnchor: [10, 10]
+      });
+    }
+
+    // === RENDERIZADO DE TABLAS ===
+    function renderPointsTable() {
+      const tbody = document.getElementById('points-body');
+      tbody.innerHTML = '';
+      points.forEach(p => {
+        const row = document.createElement('tr');
+        const color = TIPOS[p.type]?.color || '#7f8c8d';
+        row.innerHTML = `
+          <td>${p.id}</td>
+          <td><span style="display:inline-block;width:12px;height:12px;background:${color};border-radius:50%;margin-right:6px;"></span> ${TIPOS[p.type]?.label}</td>
+          <td>${p.nombre}</td>
+          <td>${p.lat.toFixed(6)}</td>
+          <td>${p.lng.toFixed(6)}</td>
+          <td>${p.nodo || '—'}</td>
+          <td>${p.comentario || "—"}</td>
+        `;
+        tbody.appendChild(row);
+      });
+      calcularDesdePuntos();
+    }
+
+    // === CÁLCULO AUTOMÁTICO DESDE PUNTOS ===
+    function calcularDesdePuntos() {
+      const nodos = {};
+      points.forEach(p => {
+        if (!nodos[p.nodo]) nodos[p.nodo] = { cams: [], switches: [], acDist: 0 };
+        if (p.type === 'camera') nodos[p.nodo].cams.push(p);
+        if (p.type === 'switch') nodos[p.nodo].switches.push(p);
+      });
+
+      let totalCamaras = 0;
+      let sumDistCamaras = 0;
+      let sumSWUTP = 0;
+      let totalCablesUTP = 0;
+      let tuberiaUTP = 0;
+      let tuberiaAC = 0;
+      let sumAC = 0;
+
+      Object.entries(nodos).forEach(([nodoId, data]) => {
+        const cams = data.cams;
+        const switches = data.switches;
+        totalCamaras += cams.length;
+
+        // Distancias cámaras a switch (usa el primer switch del nodo)
+        let sw = switches[0];
+        if (sw && cams.length > 0) {
+          cams.forEach(cam => {
+            const dist = L.latLng(cam.lat, cam.lng).distanceTo(L.latLng(sw.lat, sw.lng));
+            sumDistCamaras += dist;
+          });
+        }
+
+        // Distancia switch al centro (asumimos punto 0,0 o puedes definir un punto de referencia)
+        if (sw) {
+          sumSWUTP += sw.lat; // placeholder; en práctica, podrías usar un punto fijo como NVR
+        }
+
+        totalCablesUTP += cams.length + (sw ? 1 : 0);
+
+        // Tubería UTP (bloques de 4)
+        const dists = cams.map(cam => L.latLng(cam.lat, cam.lng).distanceTo(L.latLng(sw?.lat || 0, sw?.lng || 0))).filter(d => d > 0);
+        if (sw) dists.push(10); // ejemplo: switch a rack
+        for (let j = 0; j < dists.length; j += 4) {
+          tuberiaUTP += Math.max(...dists.slice(j, j + 4));
+        }
+
+        // AC (asumimos 10m por cámara como promedio)
+        tuberiaAC += cams.length * 10;
+        sumAC += cams.length * 10;
+      });
+
+      // Añadir márgenes (10% + poste)
+      const colasCams = sumDistCamaras * 0.1;
+      const colasNodos = sumSWUTP * 0.1;
+      const utpCams = sumDistCamaras + colasCams;
+      const utpNodos = sumSWUTP + colasNodos + (totalCamaras > 0 ? 1 : 0);
+      const totalUTP = utpCams + utpNodos;
+      const totalAC = sumAC * 1.1;
+
+      // Actualizar interfaz
+      document.getElementById('totalCamaras').textContent = totalCamaras;
+      document.getElementById('totalCablesUTP').textContent = totalCablesUTP;
+      document.getElementById('utpCamaras').textContent = utpCams.toFixed(1);
+      document.getElementById('utpNodos').textContent = utpNodos.toFixed(1);
+      document.getElementById('totalUTP').textContent = totalUTP.toFixed(1);
+      document.getElementById('tuberiaUTP').textContent = Math.ceil(tuberiaUTP);
+      document.getElementById('totalAC').textContent = totalAC.toFixed(1);
+      document.getElementById('tuberiaAC').textContent = Math.ceil(tuberiaAC);
+      document.getElementById('tuberiaTotal').textContent = Math.ceil(tuberiaUTP + tuberiaAC);
+    }
+
+    // === ACTUALIZAR NODOS EN SIDEBAR DESDE MAPA ===
+    function generarNodosDesdeMapa() {
+      const nodosUnicos = [...new Set(points.map(p => p.nodo).filter(n => n))];
+      let html = `<table><thead><tr><th>Nodo</th><th>Cámaras</th><th>Switch</th></tr></thead><tbody>`;
+      nodosUnicos.forEach(nodo => {
+        const cams = points.filter(p => p.nodo === nodo && p.type === 'camera').length;
+        const hasSwitch = points.some(p => p.nodo === nodo && p.type === 'switch');
+        html += `<tr><td>${nodo}</td><td>${cams}</td><td>${hasSwitch ? '✅' : '❌'}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+      document.getElementById('nodosSection').innerHTML = html;
+    }
+
+    // === EXPORTACIÓN CONSOLIDADA ===
+    function exportarConsolidado() {
+      const data = points.map(p => ({
+        ID: p.id,
+        Tipo: TIPOS[p.type]?.label || p.type,
+        Nombre: p.nombre,
+        Nodo: p.nodo,
+        Lat: p.lat,
+        Lng: p.lng,
+        Comentario: p.comentario
+      }));
+
+      const resumen = {
+        "Total cámaras": document.getElementById('totalCamaras').textContent,
+        "Total cables UTP": document.getElementById('totalCablesUTP').textContent,
+        "Cableado UTP en cámaras (m)": document.getElementById('utpCamaras').textContent,
+        "Cableado UTP en nodos (m)": document.getElementById('utpNodos').textContent,
+        "Total Cableado UTP (m)": document.getElementById('totalUTP').textContent,
+        "Total Tubería UTP (m)": document.getElementById('tuberiaUTP').textContent,
+        "Total Cableado AC (m)": document.getElementById('totalAC').textContent,
+        "Total Tubería AC (m)": document.getElementById('tuberiaAC').textContent,
+        "Total Tubería (UTP + AC) (m)": document.getElementById('tuberiaTotal').textContent
+      };
+
+      const wb = XLSX.utils.book_new();
+      const wsPuntos = XLSX.utils.json_to_sheet(data);
+      const wsResumen = XLSX.utils.json_to_sheet([resumen]);
+      XLSX.utils.book_append_sheet(wb, wsPuntos, "Puntos");
+      XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
+      XLSX.writeFile(wb, "MastSolucion_CCTV_Consolidado.xlsx");
+    }
+
+    // === FUNCIONES DE ARCHIVO ===
+    function loadProjectFromFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const project = JSON.parse(e.target.result);
+          markersLayer.clearLayers();
+          points = []; nextId = 1;
+          project.points.forEach(p => addPoint(p.lat, p.lng, p.type, p.nombre, p.nodo || 'N0', p.comentario));
+          renderPointsTable();
+        } catch (err) {
+          alert("Error al cargar el archivo.");
+        }
+        event.target.value = '';
+      };
+      reader.readAsText(file);
+    }
+
+    // === INICIO ===
+    window.onload = () => {
+      initMap();
+      renderPointsTable();
+    };
+  </script>
+</body>
+</html>

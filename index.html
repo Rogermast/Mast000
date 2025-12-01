@@ -100,7 +100,7 @@
             font-weight: 500;
         }
         
-        input, select, button {
+        input, select, button, textarea {
             width: 100%;
             padding: 8px;
             border: 1px solid #ddd;
@@ -178,6 +178,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
+            font-size: 14px;
         }
         
         th, td {
@@ -245,6 +246,25 @@
             display: none;
         }
         
+        .thumb {
+            width: 50px;
+            height: 40px;
+            object-fit: cover;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .action-btn-group {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .action-btn-group button {
+            font-size: 11px;
+            padding: 4px 6px;
+            width: auto;
+        }
+
         @media (max-width: 768px) {
             .main-container {
                 flex-direction: column;
@@ -397,9 +417,9 @@
                         <th>Tipo</th>
                         <th>Nombre</th>
                         <th>Nodo</th>
-                        <th>Latitud</th>
-                        <th>Longitud</th>
                         <th>Comentarios</th>
+                        <th>Img1</th>
+                        <th>Img2</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -481,7 +501,7 @@
                 <button id="exportKMZ">Exportar a KMZ</button>
             </div>
             <div class="btn-group">
-                <button id="exportImages">Exportar con Imágenes</button>
+                <button id="exportWithImages" class="btn-success">Exportar Excel + Imágenes</button>
                 <button id="exportReport">Generar Reporte PDF</button>
             </div>
         </div>
@@ -614,7 +634,7 @@
             // Exportación
             document.getElementById('exportExcel').addEventListener('click', exportToExcel);
             document.getElementById('exportKMZ').addEventListener('click', exportToKMZ);
-            document.getElementById('exportImages').addEventListener('click', exportWithImages);
+            document.getElementById('exportWithImages').addEventListener('click', exportWithImages);
             document.getElementById('exportReport').addEventListener('click', generatePDFReport);
         }
         
@@ -712,7 +732,9 @@
                 nodeId: nodeId,
                 lat: lat,
                 lng: lng,
-                comments: ''
+                comments: '',
+                image1: null,
+                image2: null
             };
             
             devices.push(device);
@@ -805,6 +827,29 @@
             updateStatus(`Dispositivo "${device.name}" eliminado.`);
         }
         
+        // Capturar imagen para un dispositivo
+        function captureImage(deviceId, imageSlot) {
+            const device = devices.find(d => d.id === deviceId);
+            if (!device) return;
+
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment'; // Para abrir la cámara en móviles
+            input.onchange = (e) => {
+                const file = e.target.files?.[0];
+                if (!file || !file.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    device[imageSlot] = ev.target.result;
+                    updateDevicesTable();
+                    updateStatus(`📷 Imagen ${imageSlot === 'image1' ? '1' : '2'} guardada para ${device.name}.`);
+                };
+                reader.readAsDataURL(file);
+            };
+            input.click();
+        }
+
         // Actualizar lista de dispositivos
         function updateDevicesList() {
             const devicesList = document.getElementById('devicesList');
@@ -850,12 +895,16 @@
                     <td>${deviceTypes[device.type].label}</td>
                     <td>${device.name}</td>
                     <td>${node ? node.name : 'Sin asignar'}</td>
-                    <td>${device.lat.toFixed(6)}</td>
-                    <td>${device.lng.toFixed(6)}</td>
                     <td>${device.comments || '-'}</td>
+                    <td>${device.image1 ? `<img src="${device.image1}" class="thumb">` : '—'}</td>
+                    <td>${device.image2 ? `<img src="${device.image2}" class="thumb">` : '—'}</td>
                     <td>
-                        <button onclick="editDevice(${device.id})" style="width: auto; padding: 5px 10px;">Editar</button>
-                        <button onclick="deleteDevice(${device.id})" class="btn-danger" style="width: auto; padding: 5px 10px;">Eliminar</button>
+                        <div class="action-btn-group">
+                            <button onclick="captureImage(${device.id}, 'image1')">📷 Img1</button>
+                            <button onclick="captureImage(${device.id}, 'image2')">📷 Img2</button>
+                            <button onclick="editDevice(${device.id})" class="btn-warning">Editar</button>
+                            <button onclick="deleteDevice(${device.id})" class="btn-danger">Eliminar</button>
+                        </div>
                     </td>
                 `;
                 tableBody.appendChild(row);
@@ -962,7 +1011,7 @@
             const distanceMarker = L.marker(midPoint, {
                 icon: L.divIcon({
                     className: 'distance-marker',
-                    html: `<div style="background-color: #ff5722; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; white-space: nowrap; box-shadow: 0 0 5px rgba(0,0,0,0.5);">${(totalDistance / 1000).toFixed(2)} km</div>`,
+                    html: `<div style="background-color: #ff5722; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; white-space: nowrap; box-shadow: 0 0 5px rgba(0,0,0,0.5);">${Math.round(totalDistance)} m</div>`,
                     iconSize: [80, 20],
                     iconAnchor: [40, 10]
                 })
@@ -1043,7 +1092,7 @@
                 routeDiv.innerHTML = `
                     <div>
                         <strong>${route.name}</strong>
-                        <div>Distancia: ${(route.distance / 1000).toFixed(2)} km</div>
+                        <div>Distancia: ${Math.round(route.distance)} m</div>
                     </div>
                     <button onclick="zoomToRoute(${route.id})" style="width: auto; padding: 5px 10px;">Ver</button>
                 `;
@@ -1072,7 +1121,7 @@
                     <td>${route.name}</td>
                     <td>${startDevice ? startDevice.name : 'Punto inicial'}</td>
                     <td>${endDevice ? endDevice.name : 'Punto final'}</td>
-                    <td>${(route.distance / 1000).toFixed(2)} km</td>
+                    <td>${Math.round(route.distance)}</td>
                     <td>
                         <button onclick="zoomToRoute(${route.id})" style="width: auto; padding: 5px 10px;">Ver</button>
                         <button onclick="deleteRoute(${route.id})" class="btn-danger" style="width: auto; padding: 5px 10px;">Eliminar</button>
@@ -1127,7 +1176,7 @@
             document.getElementById('totalRoutes').textContent = routes.length;
             
             const totalRouteLength = routes.reduce((sum, route) => sum + route.distance, 0);
-            document.getElementById('totalRouteLength').textContent = (totalRouteLength / 1000).toFixed(2) + ' km';
+            document.getElementById('totalRouteLength').textContent = Math.round(totalRouteLength);
         }
         
         // Calcular materiales
@@ -1287,7 +1336,7 @@
                 name: projectName,
                 notes: projectNotes,
                 nodes: nodes,
-                devices: devices,
+                devices: devices.map(d => ({ ...d, image1: null, image2: null })), // No guardar imágenes en JSON
                 routes: routes.map(route => ({
                     ...route,
                     points: route.points.map(p => ({ lat: p.lat, lng: p.lng }))
@@ -1386,7 +1435,7 @@
                         const distanceMarker = L.marker(midPoint, {
                             icon: L.divIcon({
                                 className: 'distance-marker',
-                                html: `<div style="background-color: #ff5722; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; white-space: nowrap; box-shadow: 0 0 5px rgba(0,0,0,0.5);">${(route.distance / 1000).toFixed(2)} km</div>`,
+                                html: `<div style="background-color: #ff5722; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; white-space: nowrap; box-shadow: 0 0 5px rgba(0,0,0,0.5);">${Math.round(route.distance)} m</div>`,
                                 iconSize: [80, 20],
                                 iconAnchor: [40, 10]
                             })
@@ -1461,9 +1510,107 @@
             calculateMaterials();
         }
         
-        // Exportar a Excel
+        // Convertir DataURL a Blob
+        function dataURLtoBlob(dataurl) {
+            const arr = dataurl.split(',');
+            const mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while(n--) u8arr[n] = bstr.charCodeAt(n);
+            return new Blob([u8arr], { type: mime });
+        }
+
+        // Exportar a Excel con imágenes
+        function exportWithImages() {
+            const projectName = document.getElementById('projectName').value || 'Proyecto_CCTV';
+            const zip = new JSZip();
+            const imgFolder = zip.folder("imagenes");
+
+            const deviceDataForExcel = devices.map(device => {
+                const node = device.nodeId ? nodes.find(n => n.id == device.nodeId) : null;
+                let img1Path = '';
+                let img2Path = '';
+
+                if (device.image1) {
+                    const filename1 = `${device.name.replace(/[^a-z0-9]/gi, '_')}_Img1.jpg`;
+                    imgFolder.file(filename1, dataURLtoBlob(device.image1));
+                    img1Path = `imagenes/${filename1}`;
+                }
+                if (device.image2) {
+                    const filename2 = `${device.name.replace(/[^a-z0-9]/gi, '_')}_Img2.jpg`;
+                    imgFolder.file(filename2, dataURLtoBlob(device.image2));
+                    img2Path = `imagenes/${filename2}`;
+                }
+
+                return {
+                    ID: device.id,
+                    Nombre: device.name,
+                    Tipo: deviceTypes[device.type].label,
+                    Nodo: node ? node.name : 'Sin asignar',
+                    Latitud: device.lat.toFixed(6),
+                    Longitud: device.lng.toFixed(6),
+                    Comentarios: device.comments || '',
+                    'Ruta Imagen 1': img1Path,
+                    'Ruta Imagen 2': img2Path
+                };
+            });
+
+            const ws = XLSX.utils.json_to_sheet(deviceDataForExcel);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Dispositivos");
+
+            if (routes.length > 0) {
+                const routeSheet = XLSX.utils.json_to_sheet(routes.map(r => {
+                    const startDevice = r.startDevice ? devices.find(d => d.id === r.startDevice) : null;
+                    const endDevice = r.endDevice ? devices.find(d => d.id === r.endDevice) : null;
+                    return {
+                        'ID Ruta': r.id,
+                        'Nombre': r.name,
+                        'Origen': startDevice ? startDevice.name : 'Punto inicial',
+                        'Destino': endDevice ? endDevice.name : 'Punto final',
+                        'Distancia (m)': Math.round(r.distance)
+                    };
+                }));
+                XLSX.utils.book_append_sheet(wb, routeSheet, "Rutas");
+            }
+
+            const summaryData = [
+                ['Concepto', 'Valor'],
+                ['Nombre del Proyecto', document.getElementById('projectName').value || 'N/A'],
+                ['Total de Nodos', nodes.length],
+                ['Total de Cámaras', devices.filter(d => d.type === 'camera').length],
+                ['Total de Switches', devices.filter(d => d.type === 'switch').length],
+                ['Total de Rutas', routes.length],
+                ['Longitud Total de Rutas (m)', Math.round(routes.reduce((sum, route) => sum + route.distance, 0))],
+                ['Total Cableado UTP (m)', document.getElementById('totalUTPCabling').textContent],
+                ['Total Tubería UTP (m)', document.getElementById('totalUTPConduit').textContent],
+                ['Total Cableado AC (m)', document.getElementById('totalACCabling').textContent],
+                ['Total Tubería AC (m)', document.getElementById('totalACConduit').textContent],
+                ['Total Tubería (UTP + AC) (m)', document.getElementById('totalConduit').textContent]
+            ];
+            const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+            XLSX.utils.book_append_sheet(wb, summaryWs, "Resumen");
+
+            const notesData = [['Notas del Proyecto'], [document.getElementById('projectNotes').value || 'Sin notas']];
+            const notesWs = XLSX.utils.aoa_to_sheet(notesData);
+            XLSX.utils.book_append_sheet(wb, notesWs, "Notas");
+
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            zip.file("Reporte_MAST.xlsx", wbout, { binary: true });
+
+            zip.generateAsync({ type: "blob" }).then(blob => {
+                saveAs(blob, `${projectName.replace(/\s+/g, '_')}_Con_Imagenes.zip`);
+                updateStatus("✅ Excel + imágenes exportados en ZIP.");
+            }).catch(err => {
+                console.error(err);
+                updateStatus("❌ Error al generar el ZIP.", 'error');
+            });
+        }
+        
+        // Exportar a Excel (simplificado, sin imágenes)
         function exportToExcel() {
-            const projectName = document.getElementById('projectName').value || 'Proyecto CCTV';
+            const projectName = document.getElementById('projectName').value || 'Proyecto_CCTV';
             
             // Crear libro de Excel
             const wb = XLSX.utils.book_new();
@@ -1477,7 +1624,7 @@
                 ['Total de Switches', devices.filter(d => d.type === 'switch').length],
                 ['Total de Otros Dispositivos', devices.filter(d => d.type !== 'camera' && d.type !== 'switch').length],
                 ['Total de Rutas', routes.length],
-                ['Longitud Total de Rutas (km)', (routes.reduce((sum, route) => sum + route.distance, 0) / 1000).toFixed(2)],
+                ['Longitud Total de Rutas (m)', Math.round(routes.reduce((sum, route) => sum + route.distance, 0))],
                 ['Total de Cables UTP', document.getElementById('totalUTPCables').textContent],
                 ['Total Cableado UTP (m)', document.getElementById('totalUTPCabling').textContent],
                 ['Total Tubería UTP (m)', document.getElementById('totalUTPConduit').textContent],
@@ -1515,7 +1662,7 @@
             // Hoja de rutas
             if (routes.length > 0) {
                 const routesData = [
-                    ['ID', 'Nombre', 'Origen', 'Destino', 'Distancia (km)']
+                    ['ID', 'Nombre', 'Origen', 'Destino', 'Distancia (m)']
                 ];
                 
                 routes.forEach(route => {
@@ -1527,7 +1674,7 @@
                         route.name,
                         startDevice ? startDevice.name : 'Punto inicial',
                         endDevice ? endDevice.name : 'Punto final',
-                        (route.distance / 1000).toFixed(2)
+                        Math.round(route.distance)
                     ]);
                 });
                 
@@ -1585,16 +1732,14 @@
             // Agregar dispositivos como marcadores
             devices.forEach(device => {
                 const node = device.nodeId ? nodes.find(n => n.id == device.nodeId) : null;
+                let desc = `<strong>${device.name}</strong><br>Tipo: ${deviceTypes[device.type].label}<br>Nodo: ${node ? node.name : 'Sin asignar'}<br>Comentarios: ${device.comments || 'N/A'}`;
+                if (device.image1) desc += `<br><img src="${device.image1}" width="200">`;
+                if (device.image2) desc += `<br><img src="${device.image2}" width="200">`;
+
                 kmlContent += `
                     <Placemark>
                         <name>${device.name}</name>
-                        <description>
-                            <![CDATA[
-                                <strong>Tipo:</strong> ${deviceTypes[device.type].label}<br>
-                                <strong>Nodo:</strong> ${node ? node.name : 'Sin asignar'}<br>
-                                <strong>Comentarios:</strong> ${device.comments || 'Sin comentarios'}
-                            ]]>
-                        </description>
+                        <description><![CDATA[${desc}]]></description>
                         <styleUrl>#${device.type}-style</styleUrl>
                         <Point>
                             <coordinates>${device.lng},${device.lat},0</coordinates>
@@ -1612,7 +1757,7 @@
                         <name>${route.name}</name>
                         <description>
                             <![CDATA[
-                                <strong>Distancia:</strong> ${(route.distance / 1000).toFixed(2)} km<br>
+                                <strong>Distancia:</strong> ${Math.round(route.distance)} m<br>
                                 <strong>Origen:</strong> ${startDevice ? startDevice.name : 'Punto inicial'}<br>
                                 <strong>Destino:</strong> ${endDevice ? endDevice.name : 'Punto final'}
                             ]]>
@@ -1682,65 +1827,6 @@
             });
         }
         
-        // Exportar con imágenes
-        function exportWithImages() {
-            const projectName = document.getElementById('projectName').value || 'Proyecto CCTV';
-            
-            // Crear libro de Excel
-            const wb = XLSX.utils.book_new();
-            
-            // Hoja de dispositivos con imágenes
-            if (devices.length > 0) {
-                const devicesData = [
-                    ['ID', 'Nombre', 'Tipo', 'Nodo', 'Latitud', 'Longitud', 'Comentarios', 'Imagen']
-                ];
-                
-                devices.forEach(device => {
-                    const node = device.nodeId ? nodes.find(n => n.id == device.nodeId) : null;
-                    devicesData.push([
-                        device.id,
-                        device.name,
-                        deviceTypes[device.type].label,
-                        node ? node.name : 'Sin asignar',
-                        device.lat.toFixed(6),
-                        device.lng.toFixed(6),
-                        device.comments || '',
-                        device.image ? `imagenes/${device.name.replace(/\s+/g, '_')}.jpg` : ''
-                    ]);
-                });
-                
-                const devicesWs = XLSX.utils.aoa_to_sheet(devicesData);
-                XLSX.utils.book_append_sheet(wb, devicesWs, 'Dispositivos');
-            }
-            
-            // Convertir libro de Excel a array buffer
-            const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-            
-            // Crear archivo ZIP
-            const zip = new JSZip();
-            
-            // Agregar archivo Excel
-            zip.file(`${projectName.replace(/\s+/g, '_')}.xlsx`, excelBuffer);
-            
-            // Agregar imágenes (simuladas)
-            const imagesFolder = zip.folder('imagenes');
-            
-            // En una implementación real, aquí se agregarían las imágenes reales
-            // Por ahora, solo agregamos archivos de texto como ejemplo
-            devices.forEach(device => {
-                if (device.image) {
-                    // En una implementación real, se usaría la imagen real
-                    imagesFolder.file(`${device.name.replace(/\s+/g, '_')}.jpg`, device.image, { base64: true });
-                }
-            });
-            
-            // Generar y descargar ZIP
-            zip.generateAsync({ type: 'blob' }).then(function(content) {
-                saveAs(content, `${projectName.replace(/\s+/g, '_')}_con_imagenes.zip`);
-                updateStatus('Proyecto con imágenes exportado correctamente.');
-            });
-        }
-        
         // Generar reporte PDF
         function generatePDFReport() {
             const { jsPDF } = window.jspdf;
@@ -1782,7 +1868,7 @@
             doc.text(`Total de Rutas: ${routes.length}`, 20, yPosition);
             yPosition += 7;
             
-            doc.text(`Longitud Total de Rutas: ${(routes.reduce((sum, route) => sum + route.distance, 0) / 1000).toFixed(2)} km`, 20, yPosition);
+            doc.text(`Longitud Total de Rutas: ${Math.round(routes.reduce((sum, route) => sum + route.distance, 0))} m`, 20, yPosition);
             yPosition += 7;
             
             doc.text(`Total de Cables UTP: ${document.getElementById('totalUTPCables').textContent}`, 20, yPosition);
@@ -1847,7 +1933,7 @@
                         yPosition = 20;
                     }
                     
-                    doc.text(`${route.name}: ${(route.distance / 1000).toFixed(2)} km`, 20, yPosition);
+                    doc.text(`${route.name}: ${Math.round(route.distance)} m`, 20, yPosition);
                     yPosition += 5;
                     
                     doc.text(`  De: ${startDevice ? startDevice.name : 'Punto inicial'} a ${endDevice ? endDevice.name : 'Punto final'}`, 25, yPosition);

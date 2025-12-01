@@ -1,552 +1,1901 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mast Solución CCTV</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background: #f5f7fa; padding: 20px; color: #333; }
-    h1 { text-align: center; margin: 15px 0; color: #2c3e50; }
-    .tabs {
-      display: flex; justify-content: center; gap: 12px; margin-bottom: 20px;
-    }
-    .tab-btn {
-      padding: 10px 24px; font-weight: 600; border: none; border-radius: 8px;
-      cursor: pointer; background: #ecf0f1; color: #2c3e50;
-    }
-    .tab-btn.active {
-      background: #3498db; color: white;
-    }
-    .section { display: none; }
-    .section.active { display: block; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAST Solución CCTV</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #1976d2;
+            --secondary-color: #2196f3;
+            --accent-color: #ff9800;
+            --success-color: #4caf50;
+            --warning-color: #ff9800;
+            --danger-color: #f44336;
+            --dark-color: #212121;
+            --light-color: #f5f5f5;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            padding: 10px;
+        }
+        
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+            text-align: center;
+            box-shadow: var(--box-shadow);
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .main-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .sidebar {
+            width: 350px;
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 15px;
+            box-shadow: var(--box-shadow);
+            overflow-y: auto;
+            max-height: calc(100vh - 120px);
+        }
+        
+        .map-container {
+            flex: 1;
+            height: 600px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .section {
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 5px;
+        }
+        
+        .form-group {
+            margin-bottom: 10px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        input, select, button {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn-group button {
+            flex: 1;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+        }
+        
+        .btn-warning {
+            background-color: var(--warning-color);
+        }
+        
+        .results-container {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 15px;
+            box-shadow: var(--box-shadow);
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 15px;
+        }
+        
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab.active {
+            border-bottom: 2px solid var(--primary-color);
+            font-weight: bold;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .summary-table {
+            margin-top: 15px;
+        }
+        
+        .summary-table td {
+            font-weight: bold;
+            background-color: #f5f5f5;
+        }
+        
+        .device-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .device-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .device-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-bar {
+            background-color: #e3f2fd;
+            padding: 10px;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        
+        .node-marker {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .node-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                max-height: none;
+            }
+            
+            .map-container {
+                height: 400px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <h1>Mast Solución CCTV</h1>
-
-  <div class="tabs">
-    <button class="tab-btn active" onclick="showSection('mapa')">📍 Mapa y Recorridos</button>
-    <button class="tab-btn" onclick="showSection('cableado')">📏 Cálculo de Cableado</button>
-  </div>
-
-  <!-- ============ SECCIÓN 1: MAPA ============ -->
-  <div id="mapa" class="section active">
-    <!-- Estilos específicos de Dmast -->
-    <style>
-      #mapa .page-wrapper { display: flex; flex-direction: column; gap: 20px; }
-      #mapa .top-section { display: flex; gap: 20px; align-items: flex-start; }
-      #mapa .toolbar-horizontal {
-        display: flex; flex-wrap: wrap; gap: 12px; padding: 16px;
-        background: white; border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        align-items: center; justify-content: flex-start;
-      }
-      #mapa .map-container { flex: 1; height: 500px; min-width: 0; }
-      #mapa #map { height: 100%; width: 100%; border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
-      #mapa label { font-weight: bold; margin-right: 8px; color: #2c3e50; display: block; margin-bottom: 6px; }
-      #mapa select, #mapa button {
-        padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;
-      }
-      #mapa .toolbar-horizontal select, #mapa .toolbar-horizontal button { width: auto; }
-      #mapa select { background: #f1f1f1; color: #333; }
-      #mapa button { color: white; }
-      #mapa .btn-device { background: #3498db; }
-      #mapa .btn-location { background: #2ecc71; }
-      #mapa .btn-save { background: #27ae60; }
-      #mapa .btn-load { background: #2980b9; }
-      #mapa .btn-export { background: #e67e22; }
-      #mapa .btn-delete { background: #e74c3c; font-size: 12px; padding: 6px 10px; }
-      #mapa .btn-route { background: #8e44ad; }
-      #mapa .btn-route.danger { background: #c0392b; }
-      #mapa .btn-notes { background: #9b59b6; }
-      #mapa table {
-        width: 100%; border-collapse: collapse; background: white;
-        border-radius: 12px; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-      }
-      #mapa th { background: #34495e; color: white; padding: 12px; text-align: left; }
-      #mapa td { padding: 12px; border-bottom: 1px solid #eee; }
-      #mapa tr:last-child td { border-bottom: none; }
-      #mapa tr.selected { background: #e8f5e9 !important; }
-      #mapa tr:hover { background: #f9fbfd; }
-      #mapa .thumb { width: 50px; height: 40px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; }
-      #mapa .status {
-        padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3;
-        border-radius: 4px; font-size: 14px; line-height: 1.5;
-      }
-      #mapa .alert-warning { background: #fff8e1; border-left-color: #ffc107; color: #5d4037; }
-      #mapa .device-icon { display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-right: 6px; }
-    </style>
-
-    <div class="page-wrapper">
-      <div class="top-section" id="topSection">
-        <div class="toolbar-horizontal" id="toolbarA">
-          <label for="deviceType">Tipo:</label>
-          <select id="deviceType">
-            <option value="camera">Cámara</option>
-            <option value="speaker">Parlante IP</option>
-            <option value="switch">Switch</option>
-            <option value="monitor">Monitor/NVR</option>
-            <option value="antenna">Antena</option>
-            <option value="solar">Panel Solar</option>
-          </select>
-          <button class="btn-device" onclick="dmast_addPointByClick()">📍 Agregar punto (clic)</button>
-          <button class="btn-location" onclick="dmast_addCurrentLocationPoint()">📍 Ubicación en tiempo real</button>
-          <button class="btn-route" id="btnRouteControl" onclick="dmast_toggleRouteWorkflow()">IGHL️ Iniciar ruta</button>
-          <button class="btn-delete" onclick="dmast_deleteSelected()">🗑️ Borrar punto</button>
-          <button class="btn-delete" onclick="dmast_deleteLastRoute()">🗑️ Borrar última ruta</button>
-          <button class="btn-notes" onclick="dmast_editProjectNotes()">📝 Notas adicionales</button>
-          <button class="btn-save" onclick="dmast_saveProjectToFile()">💾 Guardar proyecto (.json)</button>
-          <button class="btn-load" onclick="document.getElementById('fileInputDmast').click()">📂 Cargar proyecto</button>
-          <button class="btn-export" onclick="dmast_exportToExcelWithImages()">📤 Exportar Excel + Imágenes</button>
-          <button class="btn-export" onclick="dmast_exportToKMZ()">🌍 Exportar KMZ</button>
+    <div class="header">
+        <h1>MAST Solución CCTV</h1>
+        <p>Sistema Integral para Diseño e Implementación de Proyectos de Seguridad Electrónica</p>
+    </div>
+    
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="section">
+                <div class="section-title">Configuración de Nodos</div>
+                <div class="form-group">
+                    <label for="numNodes">Número de Nodos:</label>
+                    <input type="number" id="numNodes" min="1" max="10" value="1">
+                </div>
+                <button id="generateNodes">Generar Nodos</button>
+                
+                <div id="nodesContainer" class="hidden">
+                    <div class="section-title">Configuración por Nodo</div>
+                    <div id="nodesList"></div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Dispositivos</div>
+                <div class="form-group">
+                    <label for="deviceType">Tipo de Dispositivo:</label>
+                    <select id="deviceType">
+                        <option value="camera">Cámara</option>
+                        <option value="switch">Switch</option>
+                        <option value="speaker">Parlante IP</option>
+                        <option value="monitor">Monitor/NVR</option>
+                        <option value="antenna">Antena</option>
+                        <option value="solar">Panel Solar</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="deviceNode">Nodo Asociado:</label>
+                    <select id="deviceNode">
+                        <option value="">Sin asignar</option>
+                    </select>
+                </div>
+                <div class="btn-group">
+                    <button id="addDeviceByClick">Agregar por Clic</button>
+                    <button id="addDeviceByLocation">Ubicación Actual</button>
+                </div>
+                <div class="device-list" id="devicesList">
+                    <p>No hay dispositivos agregados</p>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Rutas</div>
+                <div class="btn-group">
+                    <button id="startRoute">Iniciar Ruta</button>
+                    <button id="deleteLastRoute" class="btn-danger">Eliminar Última</button>
+                </div>
+                <div class="device-list" id="routesList">
+                    <p>No hay rutas definidas</p>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Proyecto</div>
+                <div class="form-group">
+                    <label for="projectName">Nombre del Proyecto:</label>
+                    <input type="text" id="projectName" placeholder="Mi Proyecto CCTV">
+                </div>
+                <div class="form-group">
+                    <label for="projectNotes">Notas del Proyecto:</label>
+                    <textarea id="projectNotes" rows="3" placeholder="Notas adicionales..."></textarea>
+                </div>
+                <div class="btn-group">
+                    <button id="saveProject" class="btn-success">Guardar</button>
+                    <button id="loadProject">Cargar</button>
+                </div>
+                <input type="file" id="fileInput" accept=".json" style="display: none;">
+            </div>
         </div>
+        
         <div class="map-container">
-          <div id="map"></div>
+            <div id="map"></div>
         </div>
-      </div>
-
-      <input type="file" id="fileInputDmast" accept=".json" onchange="dmast_loadProjectFromFile(event)" style="display:none">
-
-      <h2>Puntos del sistema</h2>
-      <table id="points-table">
-        <thead>
-          <tr><th>ID</th><th>Tipo</th><th>Nombre</th><th>Lat</th><th>Lng</th><th>Comentario</th><th>Img1</th><th>Img2</th><th>Acciones</th></tr>
-        </thead>
-        <tbody id="points-body"></tbody>
-      </table>
-
-      <h2>Rutas perimetrales</h2>
-      <table id="routes-table">
-        <thead>
-          <tr><th>ID</th><th>Nombre</th><th>Distancia (m)</th><th>Acciones</th></tr>
-        </thead>
-        <tbody id="routes-body"></tbody>
-      </table>
-
-      <div class="status" id="statusBar">
-        • Haz clic en el mapa para agregar puntos.<br>
-        • Exporta con imágenes en una carpeta separada.
-      </div>
     </div>
-  </div>
-
-  <!-- ============ SECCIÓN 2: CABLEADO ============ -->
-  <div id="cableado" class="section">
-    <style>
-      #cableado .container {
-        max-width: 1200px; margin: 0 auto; background: white; padding: 25px;
-        border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      }
-      #cableado h2 {
-        color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 30px;
-      }
-      #cableado label { font-weight: bold; margin-right: 10px; }
-      #cableado input, #cableado select, #cableado button {
-        padding: 6px 10px; margin: 4px; border: 1px solid #ccc; border-radius: 4px;
-      }
-      #cableado button {
-        background-color: #1976d2; color: white; cursor: pointer; font-weight: bold;
-      }
-      #cableado button:hover { background-color: #1565c0; }
-      #cableado table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-      #cableado th, #cableado td {
-        border: 1px solid #999; padding: 10px; text-align: center;
-      }
-      #cableado th { background-color: #1976d2; color: white; }
-      #cableado .cam-inputs {
-        display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
-      }
-      #cableado .cam-item { display: flex; align-items: center; gap: 4px; }
-      #cableado .cam-item label { font-weight: normal; margin: 0; }
-      #cableado .summary-table td { font-weight: bold; background-color: #f5f5f5; }
-      #cableado .action-buttons {
-        text-align: center; margin: 20px 0;
-      }
-      #cableado .action-buttons button {
-        margin: 0 8px; padding: 10px 16px; font-size: 14px;
-      }
-    </style>
-
-    <div class="container">
-      <h1>Proyecto 2TYC1Q - Fase 1: Tubería y Cableado</h1>
-      <div>
-        <label for="numNodos">Cantidad de nodos:</label>
-        <input type="number" id="numNodos" min="1" max="5" value="1" />
-        <button onclick="cableado_generarNodos()">Generar Nodos</button>
-      </div>
-      <div id="nodosSection"></div>
-
-      <h2>Resumen General</h2>
-      <table class="summary-table">
-        <tr><th>Total cámaras</th><td id="totalCamaras">0</td></tr>
-        <tr><th>Total cables UTP</th><td id="totalCablesUTP">0</td></tr>
-        <tr><th>Cableado UTP en cámaras (m)</th><td id="utpCamaras">0.0</td></tr>
-        <tr><th>Cableado UTP en nodos (m)</th><td id="utpNodos">0.0</td></tr>
-        <tr><th>Total Cableado UTP (m)</th><td id="totalUTP">0.0</td></tr>
-        <tr><th>Total Tubería UTP (m)</th><td id="tuberiaUTP">0</td></tr>
-        <tr><th>Total Cableado AC (m)</th><td id="totalAC">0.0</td></tr>
-        <tr><th>Total Tubería AC (m)</th><td id="tuberiaAC">0</td></tr>
-        <tr><th>Total Tubería (UTP + AC) (m)</th><td id="tuberiaTotal">0</td></tr>
-      </table>
-
-      <div class="action-buttons">
-        <button onclick="cableado_exportarExcel()">Exportar a Excel</button>
-        <button onclick="cableado_guardarArchivo()">Guardar Archivo</button>
-        <button onclick="document.getElementById('fileInputCableado').click()">Cargar Archivo</button>
-        <input type="file" id="fileInputCableado" accept=".json" style="display:none" onchange="cableado_cargarArchivo(event)" />
-      </div>
+    
+    <div class="results-container">
+        <div class="tabs">
+            <div class="tab active" data-tab="summary">Resumen</div>
+            <div class="tab" data-tab="devices">Dispositivos</div>
+            <div class="tab" data-tab="routes">Rutas</div>
+            <div class="tab" data-tab="materials">Materiales</div>
+            <div class="tab" data-tab="export">Exportar</div>
+        </div>
+        
+        <div class="tab-content active" id="summary">
+            <div class="section-title">Resumen del Proyecto</div>
+            <table class="summary-table">
+                <tr>
+                    <th>Concepto</th>
+                    <th>Valor</th>
+                </tr>
+                <tr>
+                    <td>Total de Nodos</td>
+                    <td id="totalNodes">0</td>
+                </tr>
+                <tr>
+                    <td>Total de Cámaras</td>
+                    <td id="totalCameras">0</td>
+                </tr>
+                <tr>
+                    <td>Total de Switches</td>
+                    <td id="totalSwitches">0</td>
+                </tr>
+                <tr>
+                    <td>Total de Otros Dispositivos</td>
+                    <td id="totalOtherDevices">0</td>
+                </tr>
+                <tr>
+                    <td>Total de Rutas</td>
+                    <td id="totalRoutes">0</td>
+                </tr>
+                <tr>
+                    <td>Longitud Total de Rutas (m)</td>
+                    <td id="totalRouteLength">0</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="tab-content" id="devices">
+            <div class="section-title">Lista de Dispositivos</div>
+            <table id="devicesTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tipo</th>
+                        <th>Nombre</th>
+                        <th>Nodo</th>
+                        <th>Latitud</th>
+                        <th>Longitud</th>
+                        <th>Comentarios</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="devicesTableBody">
+                    <tr>
+                        <td colspan="8">No hay dispositivos agregados</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="tab-content" id="routes">
+            <div class="section-title">Lista de Rutas</div>
+            <table id="routesTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Origen</th>
+                        <th>Destino</th>
+                        <th>Distancia (m)</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="routesTableBody">
+                    <tr>
+                        <td colspan="6">No hay rutas definidas</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="tab-content" id="materials">
+            <div class="section-title">Cálculo de Materiales</div>
+            <table class="summary-table">
+                <tr>
+                    <th>Concepto</th>
+                    <th>Valor</th>
+                </tr>
+                <tr>
+                    <td>Total de Cables UTP</td>
+                    <td id="totalUTPCables">0</td>
+                </tr>
+                <tr>
+                    <td>Cableado UTP en Cámaras (m)</td>
+                    <td id="utpCablingCameras">0.0</td>
+                </tr>
+                <tr>
+                    <td>Cableado UTP en Nodos (m)</td>
+                    <td id="utpCablingNodes">0.0</td>
+                </tr>
+                <tr>
+                    <td>Total Cableado UTP (m)</td>
+                    <td id="totalUTPCabling">0.0</td>
+                </tr>
+                <tr>
+                    <td>Total Tubería UTP (m)</td>
+                    <td id="totalUTPConduit">0</td>
+                </tr>
+                <tr>
+                    <td>Total Cableado AC (m)</td>
+                    <td id="totalACCabling">0.0</td>
+                </tr>
+                <tr>
+                    <td>Total Tubería AC (m)</td>
+                    <td id="totalACConduit">0</td>
+                </tr>
+                <tr>
+                    <td>Total Tubería (UTP + AC) (m)</td>
+                    <td id="totalConduit">0</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="tab-content" id="export">
+            <div class="section-title">Opciones de Exportación</div>
+            <div class="btn-group">
+                <button id="exportExcel">Exportar a Excel</button>
+                <button id="exportKMZ">Exportar a KMZ</button>
+            </div>
+            <div class="btn-group">
+                <button id="exportImages">Exportar con Imágenes</button>
+                <button id="exportReport">Generar Reporte PDF</button>
+            </div>
+        </div>
     </div>
-  </div>
-
-  <!-- Librerías compartidas -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-
-  <script>
-    // === CONTROL DE PESTAÑAS ===
-    function showSection(id) {
-      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-      document.querySelector(`.tab-btn[onclick*="${id}"]`).classList.add('active');
-
-      // Inicializar mapa solo la primera vez
-      if (id === 'mapa' && typeof window.dmast_initialized === 'undefined') {
-        dmast_initMap();
-        window.dmast_initialized = true;
-      }
-    }
-
-    // =================================================================
-    // =================== SECCIÓN 1: DMast (con prefijo) ==============
-    // =================================================================
-    const TIPOS = {
-      camera: { label: "Cámara", abbr: "C", color: "#f1c40f" },
-      speaker: { label: "Parlante IP", abbr: "P", color: "#9b59b6" },
-      switch: { label: "Switch", abbr: "SW", color: "#3498db" },
-      monitor: { label: "Monitor/NVR", abbr: "M", color: "#2c3e50" },
-      antenna: { label: "Antena", abbr: "A", color: "#27ae60" },
-      solar: { label: "Panel Solar", abbr: "PS", color: "#f39c12" }
-    };
-
-    let dmast_points = [];
-    let dmast_routes = [];
-    let dmast_nextId = 1;
-    let dmast_nextRouteId = 1;
-    let dmast_map = null;
-    let dmast_markersLayer, dmast_routesLayer;
-    let dmast_selectedPointId = null;
-    let dmast_currentRouteLatLngs = [];
-    let dmast_currentRoutePolyline = null;
-    let dmast_routeWorkflowActive = false;
-    let dmast_projectNotes = "";
-
-    function dmast_initMap() {
-      dmast_map = L.map('map').setView([4.6097, -74.0817], 15);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      }).addTo(dmast_map);
-      dmast_markersLayer = L.layerGroup().addTo(dmast_map);
-      dmast_routesLayer = L.layerGroup().addTo(dmast_map);
-      dmast_map.on('click', dmast_handleMapClick);
-    }
-
-    // (Incluimos solo funciones esenciales con prefijo "dmast_")
-    // Por brevedad y claridad, aquí se muestra el esqueleto; en implementación real se incluye todo el código de Dmast con prefijos.
-    // Pero como sabes, el código completo ya está en tu archivo; lo importante es el enfoque.
-
-    function dmast_handleMapClick(e) {
-      if (dmast_routeWorkflowActive) {
-        dmast_currentRouteLatLngs.push(e.latlng);
-        if (dmast_currentRoutePolyline) dmast_map.removeLayer(dmast_currentRoutePolyline);
-        if (dmast_currentRouteLatLngs.length >= 2) {
-          dmast_currentRoutePolyline = L.polyline(dmast_currentRouteLatLngs, {
-            color: '#8e44ad', weight: 4, dashArray: '6,6'
-          }).addTo(dmast_map);
-        }
-        return;
-      }
-      const type = document.getElementById('deviceType').value;
-      const nombre = prompt("Nombre del sitio (ej: C1, A1, PS1):", "");
-      if (!nombre) return;
-      const comentario = prompt("Comentario/Nota:", "");
-      dmast_addPoint(e.latlng.lat, e.latlng.lng, type, nombre, comentario);
-    }
-
-    function dmast_getIcon(type, selected = false) {
-      const color = TIPOS[type]?.color || '#7f8c8d';
-      const border = selected ? '3px solid #27ae60' : '2px solid white';
-      return L.divIcon({
-        html: `<div style="background:${color};width:20px;height:20px;border-radius:50%;border:${border};box-shadow:0 0 6px rgba(0,0,0,0.5);"></div>`,
-        iconSize: [20, 20], iconAnchor: [10, 10]
-      });
-    }
-
-    function dmast_addPoint(lat, lng, type, nombre, comentario) {
-      const id = dmast_nextId++;
-      const marker = L.marker([lat, lng], {
-        icon: dmast_getIcon(type, id === dmast_selectedPointId),
-        draggable: true
-      }).addTo(dmast_markersLayer)
-        .on('dragend', () => {
-          const pos = marker.getLatLng();
-          const point = dmast_points.find(p => p.id === id);
-          if (point) {
-            point.lat = pos.lat;
-            point.lng = pos.lng;
-            dmast_renderPointsTable();
-          }
-        })
-        .on('click', () => dmast_selectPoint(id));
-
-      dmast_points.push({ id, type, lat, lng, nombre, comentario, image1: null, image2: null, marker });
-      dmast_renderPointsTable();
-    }
-
-    function dmast_renderPointsTable() {
-      const tbody = document.getElementById('points-body');
-      tbody.innerHTML = '';
-      dmast_points.forEach(p => {
-        const row = document.createElement('tr');
-        const color = TIPOS[p.type]?.color || '#7f8c8d';
-        row.innerHTML = `
-          <td>${p.id}</td>
-          <td><span class="device-icon" style="background:${color};"></span> ${TIPOS[p.type]?.label || p.type}</td>
-          <td>${p.nombre}</td>
-          <td>${p.lat.toFixed(6)}</td>
-          <td>${p.lng.toFixed(6)}</td>
-          <td>${p.comentario || "—"}</td>
-          <td>${p.image1 ? `<img src="${p.image1}" class="thumb">` : '—'}</td>
-          <td>${p.image2 ? `<img src="${p.image2}" class="thumb">` : '—'}</td>
-          <td>
-            <button class="btn-delete" style="font-size:11px;padding:4px 6px;" onclick="dmast_captureImage(${p.id},'image1')">📷 Img1</button>
-            <button class="btn-delete" style="font-size:11px;padding:4px 6px;" onclick="dmast_captureImage(${p.id},'image2')">📷 Img2</button>
-          </td>
-        `;
-        row.onclick = () => dmast_selectPoint(p.id);
-        if (p.id === dmast_selectedPointId) row.classList.add('selected');
-        tbody.appendChild(row);
-      });
-    }
-
-    function dmast_selectPoint(id) {
-      if (dmast_selectedPointId !== null) {
-        const old = dmast_points.find(p => p.id === dmast_selectedPointId);
-        if (old) old.marker.setIcon(dmast_getIcon(old.type, false));
-      }
-      dmast_selectedPointId = id;
-      const point = dmast_points.find(p => p.id === id);
-      if (point) point.marker.setIcon(dmast_getIcon(point.type, true));
-      dmast_renderPointsTable();
-    }
-
-    function dmast_deleteSelected() {
-      if (dmast_selectedPointId === null) return alert("Selecciona un punto.");
-      const index = dmast_points.findIndex(p => p.id === dmast_selectedPointId);
-      if (index !== -1) {
-        dmast_map.removeLayer(dmast_points[index].marker);
-        dmast_points.splice(index, 1);
-      }
-      dmast_selectedPointId = null;
-      dmast_renderPointsTable();
-    }
-
-    // Renderizado inicial de tablas vacías
-    dmast_renderPointsTable();
-    document.getElementById('routes-body').innerHTML = '';
-
-    // =================================================================
-    // =============== SECCIÓN 2: CABLEADO (con prefijo) ===============
-    // =================================================================
-    let cableado_datosGuardados = null;
-
-    function cableado_generarNodos() {
-      const n = parseInt(document.getElementById('numNodos').value) || 1;
-      let html = `<h2>Configuración por Nodo</h2>`;
-      html += `<table><thead><tr><th>Nodo</th><th>Cámaras</th><th>SW1 Dist (m)</th><th>SW1 Tipo</th><th>AC1 Dist (m)</th><th>Distancias Cámaras (C1, C2, ...)</th></tr></thead><tbody>`;
-      for (let i = 0; i < n; i++) {
-        html += `
-          <tr>
-            <td>N${i}</td>
-            <td><input type="number" min="0" value="0" id="camN${i}" oninput="cableado_generarCamaras(${i})"/></td>
-            <td><input type="number" step="0.1" value="0" id="swDist${i}" oninput="cableado_calcular()"/></td>
-            <td>
-              <select id="swTipo${i}" onchange="cableado_calcular()">
-                <option value="utp">UTP</option>
-                <option value="fibra">Fibra</option>
-              </select>
-            </td>
-            <td><input type="number" step="0.1" value="0" id="acDist${i}" oninput="cableado_calcular()"/></td>
-            <td><div id="camCont${i}" class="cam-inputs">—</div></td>
-          </tr>`;
-      }
-      html += `</tbody></table>`;
-      document.getElementById('nodosSection').innerHTML = html;
-      for (let i = 0; i < n; i++) cableado_generarCamaras(i);
-    }
-
-    function cableado_generarCamaras(i) {
-      const num = parseInt(document.getElementById(`camN${i}`).value) || 0;
-      const cont = document.getElementById(`camCont${i}`);
-      if (num <= 0) {
-        cont.innerHTML = '—';
-        cableado_calcular();
-        return;
-      }
-      let html = '';
-      for (let c = 1; c <= num; c++) {
-        html += `<div class="cam-item"><label>C${c}:</label><input type="number" step="0.1" value="0" id="n${i}c${c}" oninput="cableado_calcular()" style="width:70px;"/></div>`;
-      }
-      cont.innerHTML = html;
-      cableado_calcular();
-    }
-
-    function cableado_calcular() {
-      const n = parseInt(document.getElementById('numNodos').value) || 1;
-      let totalCamaras = 0, sumDistCamaras = 0, sumSWUTP = 0, totalCablesUTP = 0, tuberiaUTP = 0, tuberiaAC = 0, sumAC = 0;
-
-      for (let i = 0; i < n; i++) {
-        const cams = parseInt(document.getElementById(`camN${i}`).value) || 0;
-        const swDist = parseFloat(document.getElementById(`swDist${i}`).value) || 0;
-        const swTipo = document.getElementById(`swTipo${i}`).value;
-        const acDist = parseFloat(document.getElementById(`acDist${i}`).value) || 0;
-        totalCamaras += cams;
-        sumAC += acDist;
-
-        let distsCam = [];
-        for (let c = 1; c <= cams; c++) {
-          const d = parseFloat(document.getElementById(`n${i}c${c}`).value) || 0;
-          distsCam.push(d);
-          sumDistCamaras += d;
-        }
-
-        if (swTipo === 'utp') {
-          sumSWUTP += swDist;
-          totalCablesUTP += 1;
-        }
-        totalCablesUTP += cams;
-
-        if (swTipo === 'utp' || cams > 0) {
-          let todas = [];
-          if (swTipo === 'utp') todas.push(swDist);
-          todas = todas.concat(distsCam);
-          for (let j = 0; j < todas.length; j += 4) {
-            const bloque = todas.slice(j, j + 4);
-            tuberiaUTP += Math.max(...bloque);
-          }
-        }
-
-        tuberiaAC += acDist;
-        if (swTipo === 'fibra') tuberiaAC += swDist;
-      }
-
-      const colasCams = sumDistCamaras * 0.1;
-      const colasNodos = sumSWUTP * 0.1;
-      const colasAC = sumAC * 0.1;
-      const margenPoste = totalCamaras > 0 ? 1 : 0;
-      const utpCams = sumDistCamaras + colasCams;
-      const utpNodos = sumSWUTP + colasNodos + margenPoste;
-      const totalUTP = utpCams + utpNodos;
-      const totalAC = sumAC + colasAC;
-      const totalTub = tuberiaUTP + tuberiaAC;
-
-      document.getElementById('totalCamaras').textContent = totalCamaras;
-      document.getElementById('totalCablesUTP').textContent = totalCablesUTP;
-      document.getElementById('utpCamaras').textContent = utpCams.toFixed(1);
-      document.getElementById('utpNodos').textContent = utpNodos.toFixed(1);
-      document.getElementById('totalUTP').textContent = totalUTP.toFixed(1);
-      document.getElementById('tuberiaUTP').textContent = Math.ceil(tuberiaUTP);
-      document.getElementById('totalAC').textContent = totalAC.toFixed(1);
-      document.getElementById('tuberiaAC').textContent = Math.ceil(tuberiaAC);
-      document.getElementById('tuberiaTotal').textContent = Math.ceil(totalTub);
-
-      cableado_datosGuardados = { numNodos: n, nodos: [] };
-      for (let i = 0; i < n; i++) {
-        let cams = parseInt(document.getElementById(`camN${i}`).value) || 0;
-        let camDists = [];
-        for (let c = 1; c <= cams; c++) camDists.push(parseFloat(document.getElementById(`n${i}c${c}`).value) || 0);
-        cableado_datosGuardados.nodos.push({
-          camaras: cams,
-          swDist: parseFloat(document.getElementById(`swDist${i}`).value) || 0,
-          swTipo: document.getElementById(`swTipo${i}`).value,
-          acDist: parseFloat(document.getElementById(`acDist${i}`).value) || 0,
-          camDists: camDists
+    
+    <div class="status-bar" id="statusBar">
+        Listo para comenzar. Configure los nodos y agregue dispositivos al mapa.
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <script>
+        // Variables globales
+        let map;
+        let devices = [];
+        let routes = [];
+        let nodes = [];
+        let nextDeviceId = 1;
+        let nextRouteId = 1;
+        let currentRoute = null;
+        let isDrawingRoute = false;
+        let routePoints = [];
+        let routePolyline = null;
+        let deviceMarkers = {};
+        let routeMarkers = {};
+        
+        // Colores para nodos
+        const nodeColors = [
+            '#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5',
+            '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50'
+        ];
+        
+        // Tipos de dispositivos
+        const deviceTypes = {
+            camera: { label: 'Cámara', icon: '📹' },
+            switch: { label: 'Switch', icon: '🔌' },
+            speaker: { label: 'Parlante IP', icon: '🔊' },
+            monitor: { label: 'Monitor/NVR', icon: '🖥️' },
+            antenna: { label: 'Antena', icon: '📡' },
+            solar: { label: 'Panel Solar', icon: '☀️' }
+        };
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            setupEventListeners();
+            updateStatus('Sistema inicializado. Configure los nodos para comenzar.');
         });
-      }
-    }
-
-    function cableado_guardarArchivo() {
-      if (!cableado_datosGuardados) return alert("No hay datos para guardar.");
-      const dataStr = JSON.stringify(cableado_datosGuardados, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'proyecto_2TYC1Q_config.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-
-    function cableado_cargarArchivo(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const data = JSON.parse(e.target.result);
-          document.getElementById('numNodos').value = data.numNodos;
-          cableado_generarNodos();
-          for (let i = 0; i < data.nodos.length; i++) {
-            const n = data.nodos[i];
-            document.getElementById(`camN${i}`).value = n.camaras;
-            document.getElementById(`swDist${i}`).value = n.swDist;
-            document.getElementById(`swTipo${i}`).value = n.swTipo;
-            document.getElementById(`acDist${i}`).value = n.acDist;
-            cableado_generarCamaras(i);
-            for (let c = 0; c < n.camDists.length; c++) {
-              document.getElementById(`n${i}c${c + 1}`).value = n.camDists[c];
-            }
-          }
-          cableado_calcular();
-          document.getElementById('fileInputCableado').value = '';
-        } catch (err) {
-          alert("Error al cargar el archivo.");
+        
+        // Inicializar mapa
+        function initMap() {
+            map = L.map('map').setView([4.6097, -74.0817], 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            map.on('click', handleMapClick);
         }
-      };
-      reader.readAsText(file);
-    }
-
-    function cableado_exportarExcel() {
-      const resumen = [
-        ["Concepto", "Valor"],
-        ["Total cámaras", document.getElementById('totalCamaras').textContent],
-        ["Total cables UTP", document.getElementById('totalCablesUTP').textContent],
-        ["Cableado UTP en cámaras (m)", document.getElementById('utpCamaras').textContent],
-        ["Cableado UTP en nodos (m)", document.getElementById('utpNodos').textContent],
-        ["Total Cableado UTP (m)", document.getElementById('totalUTP').textContent],
-        ["Total Tubería UTP (m)", document.getElementById('tuberiaUTP').textContent],
-        ["Total Cableado AC (m)", document.getElementById('totalAC').textContent],
-        ["Total Tubería AC (m)", document.getElementById('tuberiaAC').textContent],
-        ["Total Tubería (UTP + AC) (m)", document.getElementById('tuberiaTotal').textContent]
-      ];
-      let csvContent = "data:text/csv;charset=utf-8,";
-      resumen.forEach(row => { csvContent += row.join(",") + "\n"; });
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", "resumen_2TYC1Q.csv");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    // Iniciar sección cableado
-    cableado_generarNodos();
-  </script>
+        
+        // Configurar event listeners
+        function setupEventListeners() {
+            // Tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    // Actualizar tabs activos
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Actualizar contenido activo
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+            
+            // Generar nodos
+            document.getElementById('generateNodes').addEventListener('click', generateNodes);
+            
+            // Agregar dispositivos
+            document.getElementById('addDeviceByClick').addEventListener('click', function() {
+                updateStatus('Haga clic en el mapa para agregar un dispositivo.');
+                map._container.style.cursor = 'crosshair';
+                map.once('click', function(e) {
+                    map._container.style.cursor = '';
+                    addDeviceAtLocation(e.latlng.lat, e.latlng.lng);
+                });
+            });
+            
+            document.getElementById('addDeviceByLocation').addEventListener('click', function() {
+                if (!navigator.geolocation) {
+                    updateStatus('Su navegador no soporta geolocalización.', 'error');
+                    return;
+                }
+                
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        map.setView([lat, lng], 16);
+                        addDeviceAtLocation(lat, lng);
+                    },
+                    error => {
+                        updateStatus('No se pudo obtener su ubicación actual.', 'error');
+                    }
+                );
+            });
+            
+            // Rutas
+            document.getElementById('startRoute').addEventListener('click', toggleRouteDrawing);
+            document.getElementById('deleteLastRoute').addEventListener('click', deleteLastRoute);
+            
+            // Proyecto
+            document.getElementById('saveProject').addEventListener('click', saveProject);
+            document.getElementById('loadProject').addEventListener('click', function() {
+                document.getElementById('fileInput').click();
+            });
+            
+            document.getElementById('fileInput').addEventListener('change', function(e) {
+                loadProject(e.target.files[0]);
+            });
+            
+            // Exportación
+            document.getElementById('exportExcel').addEventListener('click', exportToExcel);
+            document.getElementById('exportKMZ').addEventListener('click', exportToKMZ);
+            document.getElementById('exportImages').addEventListener('click', exportWithImages);
+            document.getElementById('exportReport').addEventListener('click', generatePDFReport);
+        }
+        
+        // Generar nodos
+        function generateNodes() {
+            const numNodes = parseInt(document.getElementById('numNodes').value) || 1;
+            nodes = [];
+            
+            for (let i = 0; i < numNodes; i++) {
+                const letter = String.fromCharCode(65 + i); // A, B, C, etc.
+                nodes.push({
+                    id: i,
+                    name: `Nodo ${i + 1}`,
+                    letter: letter,
+                    color: nodeColors[i % nodeColors.length],
+                    cameras: 0,
+                    switches: 0,
+                    devices: []
+                });
+            }
+            
+            renderNodesList();
+            updateDeviceNodeOptions();
+            document.getElementById('nodesContainer').classList.remove('hidden');
+            updateStatus(`Se han generado ${numNodes} nodos. Ahora puede agregar dispositivos al mapa.`);
+            updateSummary();
+        }
+        
+        // Renderizar lista de nodos
+        function renderNodesList() {
+            const nodesList = document.getElementById('nodesList');
+            nodesList.innerHTML = '';
+            
+            nodes.forEach(node => {
+                const nodeDiv = document.createElement('div');
+                nodeDiv.className = 'node-marker';
+                nodeDiv.innerHTML = `
+                    <div class="node-color" style="background-color: ${node.color};"></div>
+                    <div>
+                        <strong>${node.name} (${node.letter})</strong>
+                        <div>Cámaras: ${node.cameras} | Switches: ${node.switches}</div>
+                    </div>
+                `;
+                nodesList.appendChild(nodeDiv);
+            });
+        }
+        
+        // Actualizar opciones de nodos en dispositivos
+        function updateDeviceNodeOptions() {
+            const deviceNodeSelect = document.getElementById('deviceNode');
+            deviceNodeSelect.innerHTML = '<option value="">Sin asignar</option>';
+            
+            nodes.forEach(node => {
+                const option = document.createElement('option');
+                option.value = node.id;
+                option.textContent = `${node.name} (${node.letter})`;
+                deviceNodeSelect.appendChild(option);
+            });
+        }
+        
+        // Manejar clic en el mapa
+        function handleMapClick(e) {
+            if (isDrawingRoute) {
+                addRoutePoint(e.latlng);
+            }
+        }
+        
+        // Agregar dispositivo en ubicación específica
+        function addDeviceAtLocation(lat, lng) {
+            const type = document.getElementById('deviceType').value;
+            const nodeId = document.getElementById('deviceNode').value;
+            const node = nodeId ? nodes.find(n => n.id == nodeId) : null;
+            
+            // Generar nombre basado en tipo y nodo
+            let name = '';
+            if (node) {
+                if (type === 'camera') {
+                    node.cameras++;
+                    name = `${node.letter}${node.cameras}`;
+                } else if (type === 'switch') {
+                    node.switches++;
+                    name = `${node.letter}SW${node.switches}`;
+                } else {
+                    name = `${node.letter}${deviceTypes[type].label.substring(0, 3)}${node.devices.length + 1}`;
+                }
+                node.devices.push(nextDeviceId);
+            } else {
+                name = `${deviceTypes[type].label.substring(0, 3)}${nextDeviceId}`;
+            }
+            
+            const device = {
+                id: nextDeviceId++,
+                type: type,
+                name: name,
+                nodeId: nodeId,
+                lat: lat,
+                lng: lng,
+                comments: ''
+            };
+            
+            devices.push(device);
+            
+            // Agregar marcador al mapa
+            const icon = L.divIcon({
+                html: `<div style="background-color: ${node ? node.color : '#777'}; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);">${deviceTypes[type].icon}</div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+            
+            const marker = L.marker([lat, lng], { icon: icon, draggable: true }).addTo(map);
+            
+            marker.on('dragend', function(e) {
+                const position = marker.getLatLng();
+                device.lat = position.lat;
+                device.lng = position.lng;
+                updateDevicesList();
+                updateDevicesTable();
+                calculateMaterials();
+            });
+            
+            marker.bindPopup(`
+                <div>
+                    <strong>${name}</strong><br>
+                    Tipo: ${deviceTypes[type].label}<br>
+                    Nodo: ${node ? node.name : 'Sin asignar'}<br>
+                    <button onclick="editDevice(${device.id})">Editar</button>
+                    <button onclick="deleteDevice(${device.id})">Eliminar</button>
+                </div>
+            `);
+            
+            deviceMarkers[device.id] = marker;
+            
+            renderNodesList();
+            updateDevicesList();
+            updateDevicesTable();
+            updateSummary();
+            calculateMaterials();
+            updateStatus(`Dispositivo "${name}" agregado al mapa.`);
+        }
+        
+        // Editar dispositivo
+        function editDevice(deviceId) {
+            const device = devices.find(d => d.id === deviceId);
+            if (!device) return;
+            
+            const newComments = prompt('Comentarios del dispositivo:', device.comments);
+            if (newComments !== null) {
+                device.comments = newComments;
+                updateDevicesList();
+                updateDevicesTable();
+                updateStatus(`Dispositivo "${device.name}" actualizado.`);
+            }
+        }
+        
+        // Eliminar dispositivo
+        function deleteDevice(deviceId) {
+            const deviceIndex = devices.findIndex(d => d.id === deviceId);
+            if (deviceIndex === -1) return;
+            
+            const device = devices[deviceIndex];
+            
+            // Eliminar del nodo si está asignado
+            if (device.nodeId) {
+                const node = nodes.find(n => n.id == device.nodeId);
+                if (node) {
+                    if (device.type === 'camera') node.cameras--;
+                    else if (device.type === 'switch') node.switches--;
+                    
+                    const deviceIndexInNode = node.devices.indexOf(deviceId);
+                    if (deviceIndexInNode !== -1) node.devices.splice(deviceIndexInNode, 1);
+                }
+            }
+            
+            // Eliminar del mapa
+            if (deviceMarkers[deviceId]) {
+                map.removeLayer(deviceMarkers[deviceId]);
+                delete deviceMarkers[deviceId];
+            }
+            
+            // Eliminar del array
+            devices.splice(deviceIndex, 1);
+            
+            renderNodesList();
+            updateDevicesList();
+            updateDevicesTable();
+            updateSummary();
+            calculateMaterials();
+            updateStatus(`Dispositivo "${device.name}" eliminado.`);
+        }
+        
+        // Actualizar lista de dispositivos
+        function updateDevicesList() {
+            const devicesList = document.getElementById('devicesList');
+            
+            if (devices.length === 0) {
+                devicesList.innerHTML = '<p>No hay dispositivos agregados</p>';
+                return;
+            }
+            
+            devicesList.innerHTML = '';
+            
+            devices.forEach(device => {
+                const node = device.nodeId ? nodes.find(n => n.id == device.nodeId) : null;
+                const deviceDiv = document.createElement('div');
+                deviceDiv.className = 'device-item';
+                deviceDiv.innerHTML = `
+                    <div>
+                        <strong>${device.name}</strong>
+                        <div>${deviceTypes[device.type].label} ${node ? `(${node.name})` : ''}</div>
+                    </div>
+                    <button onclick="deleteDevice(${device.id})" class="btn-danger" style="width: auto; padding: 5px 10px;">Eliminar</button>
+                `;
+                devicesList.appendChild(deviceDiv);
+            });
+        }
+        
+        // Actualizar tabla de dispositivos
+        function updateDevicesTable() {
+            const tableBody = document.getElementById('devicesTableBody');
+            
+            if (devices.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8">No hay dispositivos agregados</td></tr>';
+                return;
+            }
+            
+            tableBody.innerHTML = '';
+            
+            devices.forEach(device => {
+                const node = device.nodeId ? nodes.find(n => n.id == device.nodeId) : null;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${device.id}</td>
+                    <td>${deviceTypes[device.type].label}</td>
+                    <td>${device.name}</td>
+                    <td>${node ? node.name : 'Sin asignar'}</td>
+                    <td>${device.lat.toFixed(6)}</td>
+                    <td>${device.lng.toFixed(6)}</td>
+                    <td>${device.comments || '-'}</td>
+                    <td>
+                        <button onclick="editDevice(${device.id})" style="width: auto; padding: 5px 10px;">Editar</button>
+                        <button onclick="deleteDevice(${device.id})" class="btn-danger" style="width: auto; padding: 5px 10px;">Eliminar</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Iniciar/detener dibujo de ruta
+        function toggleRouteDrawing() {
+            const button = document.getElementById('startRoute');
+            
+            if (isDrawingRoute) {
+                // Finalizar ruta
+                if (routePoints.length < 2) {
+                    updateStatus('Una ruta debe tener al menos 2 puntos.', 'error');
+                    return;
+                }
+                
+                finishRoute();
+                isDrawingRoute = false;
+                button.textContent = 'Iniciar Ruta';
+                button.classList.remove('btn-danger');
+                map._container.style.cursor = '';
+                updateStatus('Ruta finalizada.');
+            } else {
+                // Iniciar ruta
+                isDrawingRoute = true;
+                routePoints = [];
+                button.textContent = 'Finalizar Ruta';
+                button.classList.add('btn-danger');
+                map._container.style.cursor = 'crosshair';
+                updateStatus('Haga clic en el mapa para dibujar una ruta.');
+            }
+        }
+        
+        // Agregar punto a la ruta
+        function addRoutePoint(latlng) {
+            routePoints.push(latlng);
+            
+            // Actualizar polilínea
+            if (routePolyline) {
+                map.removeLayer(routePolyline);
+            }
+            
+            routePolyline = L.polyline(routePoints, {
+                color: '#ff5722',
+                weight: 3,
+                opacity: 0.7,
+                dashArray: '10, 5'
+            }).addTo(map);
+            
+            updateStatus(`Punto ${routePoints.length} agregado a la ruta.`);
+        }
+        
+        // Finalizar ruta
+        function finishRoute() {
+            // Calcular distancia total
+            let totalDistance = 0;
+            for (let i = 0; i < routePoints.length - 1; i++) {
+                totalDistance += routePoints[i].distanceTo(routePoints[i + 1]);
+            }
+            
+            // Encontrar dispositivos cercanos al inicio y fin de la ruta
+            const startPoint = routePoints[0];
+            const endPoint = routePoints[routePoints.length - 1];
+            
+            const startDevice = findNearestDevice(startPoint);
+            const endDevice = findNearestDevice(endPoint);
+            
+            // Generar nombre de ruta
+            let routeName = `Ruta ${nextRouteId}`;
+            if (startDevice && endDevice) {
+                routeName = `${startDevice.name} - ${endDevice.name}`;
+            } else if (startDevice) {
+                routeName = `${startDevice.name} - Punto final`;
+            } else if (endDevice) {
+                routeName = `Punto inicial - ${endDevice.name}`;
+            }
+            
+            // Crear objeto de ruta
+            const route = {
+                id: nextRouteId++,
+                name: routeName,
+                points: routePoints.map(p => ({ lat: p.lat, lng: p.lng })),
+                distance: totalDistance,
+                startDevice: startDevice ? startDevice.id : null,
+                endDevice: endDevice ? endDevice.id : null
+            };
+            
+            routes.push(route);
+            
+            // Reemplazar polilínea temporal con la definitiva
+            if (routePolyline) {
+                map.removeLayer(routePolyline);
+            }
+            
+            routePolyline = L.polyline(routePoints, {
+                color: '#ff5722',
+                weight: 3,
+                opacity: 0.7
+            }).addTo(map);
+            
+            // Agregar marcador de distancia en el punto medio
+            const midPoint = routePoints[Math.floor(routePoints.length / 2)];
+            const distanceMarker = L.marker(midPoint, {
+                icon: L.divIcon({
+                    className: 'distance-marker',
+                    html: `<div style="background-color: #ff5722; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; white-space: nowrap; box-shadow: 0 0 5px rgba(0,0,0,0.5);">${(totalDistance / 1000).toFixed(2)} km</div>`,
+                    iconSize: [80, 20],
+                    iconAnchor: [40, 10]
+                })
+            }).addTo(map);
+            
+            // Guardar referencia a los marcadores
+            routeMarkers[route.id] = {
+                polyline: routePolyline,
+                distanceMarker: distanceMarker
+            };
+            
+            // Limpiar variables temporales
+            routePoints = [];
+            routePolyline = null;
+            
+            updateRoutesList();
+            updateRoutesTable();
+            updateSummary();
+            calculateMaterials();
+        }
+        
+        // Encontrar dispositivo más cercano a un punto
+        function findNearestDevice(point) {
+            let nearestDevice = null;
+            let minDistance = Infinity;
+            
+            devices.forEach(device => {
+                const deviceLatLng = L.latLng(device.lat, device.lng);
+                const distance = point.distanceTo(deviceLatLng);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestDevice = device;
+                }
+            });
+            
+            // Solo considerar como cercano si está a menos de 50 metros
+            return minDistance < 50 ? nearestDevice : null;
+        }
+        
+        // Eliminar última ruta
+        function deleteLastRoute() {
+            if (routes.length === 0) {
+                updateStatus('No hay rutas para eliminar.', 'error');
+                return;
+            }
+            
+            const lastRoute = routes.pop();
+            
+            // Eliminar del mapa
+            if (routeMarkers[lastRoute.id]) {
+                map.removeLayer(routeMarkers[lastRoute.id].polyline);
+                map.removeLayer(routeMarkers[lastRoute.id].distanceMarker);
+                delete routeMarkers[lastRoute.id];
+            }
+            
+            updateRoutesList();
+            updateRoutesTable();
+            updateSummary();
+            calculateMaterials();
+            updateStatus(`Ruta "${lastRoute.name}" eliminada.`);
+        }
+        
+        // Actualizar lista de rutas
+        function updateRoutesList() {
+            const routesList = document.getElementById('routesList');
+            
+            if (routes.length === 0) {
+                routesList.innerHTML = '<p>No hay rutas definidas</p>';
+                return;
+            }
+            
+            routesList.innerHTML = '';
+            
+            routes.forEach(route => {
+                const routeDiv = document.createElement('div');
+                routeDiv.className = 'device-item';
+                routeDiv.innerHTML = `
+                    <div>
+                        <strong>${route.name}</strong>
+                        <div>Distancia: ${(route.distance / 1000).toFixed(2)} km</div>
+                    </div>
+                    <button onclick="zoomToRoute(${route.id})" style="width: auto; padding: 5px 10px;">Ver</button>
+                `;
+                routesList.appendChild(routeDiv);
+            });
+        }
+        
+        // Actualizar tabla de rutas
+        function updateRoutesTable() {
+            const tableBody = document.getElementById('routesTableBody');
+            
+            if (routes.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6">No hay rutas definidas</td></tr>';
+                return;
+            }
+            
+            tableBody.innerHTML = '';
+            
+            routes.forEach(route => {
+                const startDevice = route.startDevice ? devices.find(d => d.id === route.startDevice) : null;
+                const endDevice = route.endDevice ? devices.find(d => d.id === route.endDevice) : null;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${route.id}</td>
+                    <td>${route.name}</td>
+                    <td>${startDevice ? startDevice.name : 'Punto inicial'}</td>
+                    <td>${endDevice ? endDevice.name : 'Punto final'}</td>
+                    <td>${(route.distance / 1000).toFixed(2)} km</td>
+                    <td>
+                        <button onclick="zoomToRoute(${route.id})" style="width: auto; padding: 5px 10px;">Ver</button>
+                        <button onclick="deleteRoute(${route.id})" class="btn-danger" style="width: auto; padding: 5px 10px;">Eliminar</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Hacer zoom a una ruta
+        function zoomToRoute(routeId) {
+            const route = routes.find(r => r.id === routeId);
+            if (!route) return;
+            
+            const latlngs = route.points.map(p => L.latLng(p.lat, p.lng));
+            const bounds = L.latLngBounds(latlngs);
+            map.fitBounds(bounds, { padding: [50, 50] });
+            
+            updateStatus(`Mostrando ruta "${route.name}".`);
+        }
+        
+        // Eliminar una ruta específica
+        function deleteRoute(routeId) {
+            const routeIndex = routes.findIndex(r => r.id === routeId);
+            if (routeIndex === -1) return;
+            
+            const route = routes[routeIndex];
+            
+            // Eliminar del mapa
+            if (routeMarkers[routeId]) {
+                map.removeLayer(routeMarkers[routeId].polyline);
+                map.removeLayer(routeMarkers[routeId].distanceMarker);
+                delete routeMarkers[routeId];
+            }
+            
+            // Eliminar del array
+            routes.splice(routeIndex, 1);
+            
+            updateRoutesList();
+            updateRoutesTable();
+            updateSummary();
+            calculateMaterials();
+            updateStatus(`Ruta "${route.name}" eliminada.`);
+        }
+        
+        // Actualizar resumen
+        function updateSummary() {
+            document.getElementById('totalNodes').textContent = nodes.length;
+            document.getElementById('totalCameras').textContent = devices.filter(d => d.type === 'camera').length;
+            document.getElementById('totalSwitches').textContent = devices.filter(d => d.type === 'switch').length;
+            document.getElementById('totalOtherDevices').textContent = devices.filter(d => d.type !== 'camera' && d.type !== 'switch').length;
+            document.getElementById('totalRoutes').textContent = routes.length;
+            
+            const totalRouteLength = routes.reduce((sum, route) => sum + route.distance, 0);
+            document.getElementById('totalRouteLength').textContent = (totalRouteLength / 1000).toFixed(2) + ' km';
+        }
+        
+        // Calcular materiales
+        function calculateMaterials() {
+            // Contar cámaras y switches por nodo
+            const nodeStats = {};
+            
+            nodes.forEach(node => {
+                nodeStats[node.id] = {
+                    cameras: 0,
+                    switches: 0,
+                    cableLengths: []
+                };
+            });
+            
+            devices.forEach(device => {
+                if (device.nodeId && nodeStats[device.nodeId]) {
+                    if (device.type === 'camera') {
+                        nodeStats[device.nodeId].cameras++;
+                    } else if (device.type === 'switch') {
+                        nodeStats[device.nodeId].switches++;
+                    }
+                }
+            });
+            
+            // Calcular longitudes de cable basadas en rutas
+            routes.forEach(route => {
+                if (route.startDevice && route.endDevice) {
+                    const startDevice = devices.find(d => d.id === route.startDevice);
+                    const endDevice = devices.find(d => d.id === route.endDevice);
+                    
+                    if (startDevice && endDevice) {
+                        // Determinar si es una ruta UTP o AC
+                        if ((startDevice.type === 'camera' && endDevice.type === 'switch') ||
+                            (startDevice.type === 'switch' && endDevice.type === 'camera') ||
+                            (startDevice.type === 'switch' && endDevice.type === 'switch')) {
+                            // Es una ruta UTP
+                            if (startDevice.nodeId && nodeStats[startDevice.nodeId]) {
+                                nodeStats[startDevice.nodeId].cableLengths.push(route.distance);
+                            }
+                        } else {
+                            // Es una ruta AC
+                            // No la contamos aquí, se añadirá al total de AC
+                        }
+                    }
+                }
+            });
+            
+            // Calcular totales
+            let totalUTPCables = 0;
+            let utpCablingCameras = 0;
+            let utpCablingNodes = 0;
+            let totalUTPCabling = 0;
+            let totalUTPConduit = 0;
+            let totalACCabling = 0;
+            let totalACConduit = 0;
+            
+            // Calcular cableado UTP para cámaras
+            const cameras = devices.filter(d => d.type === 'camera');
+            cameras.forEach(camera => {
+                // Estimación de 50m por cámara si no hay ruta definida
+                let cableLength = 50;
+                
+                // Buscar una ruta a un switch
+                const connectedRoute = routes.find(r => 
+                    (r.startDevice === camera.id && devices.find(d => d.id === r.endDevice && d.type === 'switch')) ||
+                    (r.endDevice === camera.id && devices.find(d => d.id === r.startDevice && d.type === 'switch'))
+                );
+                
+                if (connectedRoute) {
+                    cableLength = connectedRoute.distance;
+                }
+                
+                utpCablingCameras += cableLength;
+            });
+            
+            // Calcular cableado UTP para nodos
+            Object.values(nodeStats).forEach(stats => {
+                // Cableado para switches
+                if (stats.switches > 0) {
+                    // Estimación de 100m por switch si no hay ruta definida
+                    let cableLength = 100;
+                    
+                    // Buscar rutas entre switches
+                    const nodeSwitches = devices.filter(d => d.type === 'switch' && d.nodeId && nodeStats[d.nodeId] === stats);
+                    
+                    nodeSwitches.forEach(sw1 => {
+                        nodeSwitches.forEach(sw2 => {
+                            if (sw1.id < sw2.id) { // Evitar duplicados
+                                const connectedRoute = routes.find(r => 
+                                    (r.startDevice === sw1.id && r.endDevice === sw2.id) ||
+                                    (r.startDevice === sw2.id && r.endDevice === sw1.id)
+                                );
+                                
+                                if (connectedRoute) {
+                                    cableLength += connectedRoute.distance;
+                                } else {
+                                    cableLength += 50; // Estimación para conexión no definida
+                                }
+                            }
+                        });
+                    });
+                    
+                    utpCablingNodes += cableLength;
+                }
+            });
+            
+            // Calcular cableado AC
+            devices.forEach(device => {
+                // Estimación de 30m por dispositivo para alimentación AC
+                totalACCabling += 30;
+            });
+            
+            // Añadir longitudes de rutas AC
+            routes.forEach(route => {
+                if (route.startDevice && route.endDevice) {
+                    const startDevice = devices.find(d => d.id === route.startDevice);
+                    const endDevice = devices.find(d => d.id === route.endDevice);
+                    
+                    if (startDevice && endDevice) {
+                        // Determinar si es una ruta AC
+                        if (!((startDevice.type === 'camera' && endDevice.type === 'switch') ||
+                              (startDevice.type === 'switch' && endDevice.type === 'camera') ||
+                              (startDevice.type === 'switch' && endDevice.type === 'switch'))) {
+                            // Es una ruta AC
+                            totalACCabling += route.distance;
+                        }
+                    }
+                }
+            });
+            
+            // Calcular totales
+            totalUTPCables = cameras.length + devices.filter(d => d.type === 'switch').length;
+            totalUTPCabling = utpCablingCameras + utpCablingNodes;
+            
+            // Calcular tubería (90% del cableado)
+            totalUTPConduit = Math.round(totalUTPCabling * 0.9);
+            totalACConduit = Math.round(totalACCabling * 0.9);
+            
+            // Actualizar UI
+            document.getElementById('totalUTPCables').textContent = totalUTPCables;
+            document.getElementById('utpCablingCameras').textContent = utpCablingCameras.toFixed(1);
+            document.getElementById('utpCablingNodes').textContent = utpCablingNodes.toFixed(1);
+            document.getElementById('totalUTPCabling').textContent = totalUTPCabling.toFixed(1);
+            document.getElementById('totalUTPConduit').textContent = totalUTPConduit;
+            document.getElementById('totalACCabling').textContent = totalACCabling.toFixed(1);
+            document.getElementById('totalACConduit').textContent = totalACConduit;
+            document.getElementById('totalConduit').textContent = totalUTPConduit + totalACConduit;
+        }
+        
+        // Guardar proyecto
+        function saveProject() {
+            const projectName = document.getElementById('projectName').value || 'Proyecto CCTV';
+            const projectNotes = document.getElementById('projectNotes').value || '';
+            
+            const project = {
+                name: projectName,
+                notes: projectNotes,
+                nodes: nodes,
+                devices: devices,
+                routes: routes.map(route => ({
+                    ...route,
+                    points: route.points.map(p => ({ lat: p.lat, lng: p.lng }))
+                })),
+                metadata: {
+                    version: '1.0',
+                    created: new Date().toISOString(),
+                    nextDeviceId: nextDeviceId,
+                    nextRouteId: nextRouteId
+                }
+            };
+            
+            const dataStr = JSON.stringify(project, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            saveAs(dataBlob, `${projectName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.json`);
+            
+            updateStatus(`Proyecto "${projectName}" guardado correctamente.`);
+        }
+        
+        // Cargar proyecto
+        function loadProject(file) {
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const project = JSON.parse(e.target.result);
+                    
+                    // Limpiar estado actual
+                    clearProject();
+                    
+                    // Cargar datos del proyecto
+                    document.getElementById('projectName').value = project.name || '';
+                    document.getElementById('projectNotes').value = project.notes || '';
+                    
+                    nodes = project.nodes || [];
+                    devices = project.devices || [];
+                    routes = project.routes || [];
+                    
+                    if (project.metadata) {
+                        nextDeviceId = project.metadata.nextDeviceId || 1;
+                        nextRouteId = project.metadata.nextRouteId || 1;
+                    }
+                    
+                    // Recrear nodos en el mapa
+                    renderNodesList();
+                    updateDeviceNodeOptions();
+                    
+                    // Recrear dispositivos en el mapa
+                    devices.forEach(device => {
+                        const node = device.nodeId ? nodes.find(n => n.id == device.nodeId) : null;
+                        
+                        const icon = L.divIcon({
+                            html: `<div style="background-color: ${node ? node.color : '#777'}; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);">${deviceTypes[device.type].icon}</div>`,
+                            iconSize: [24, 24],
+                            iconAnchor: [12, 12]
+                        });
+                        
+                        const marker = L.marker([device.lat, device.lng], { icon: icon, draggable: true }).addTo(map);
+                        
+                        marker.on('dragend', function(e) {
+                            const position = marker.getLatLng();
+                            device.lat = position.lat;
+                            device.lng = position.lng;
+                            updateDevicesList();
+                            updateDevicesTable();
+                            calculateMaterials();
+                        });
+                        
+                        marker.bindPopup(`
+                            <div>
+                                <strong>${device.name}</strong><br>
+                                Tipo: ${deviceTypes[device.type].label}<br>
+                                Nodo: ${node ? node.name : 'Sin asignar'}<br>
+                                <button onclick="editDevice(${device.id})">Editar</button>
+                                <button onclick="deleteDevice(${device.id})">Eliminar</button>
+                            </div>
+                        `);
+                        
+                        deviceMarkers[device.id] = marker;
+                    });
+                    
+                    // Recrear rutas en el mapa
+                    routes.forEach(route => {
+                        const latlngs = route.points.map(p => L.latLng(p.lat, p.lng));
+                        
+                        const polyline = L.polyline(latlngs, {
+                            color: '#ff5722',
+                            weight: 3,
+                            opacity: 0.7
+                        }).addTo(map);
+                        
+                        // Agregar marcador de distancia en el punto medio
+                        const midPoint = latlngs[Math.floor(latlngs.length / 2)];
+                        const distanceMarker = L.marker(midPoint, {
+                            icon: L.divIcon({
+                                className: 'distance-marker',
+                                html: `<div style="background-color: #ff5722; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; white-space: nowrap; box-shadow: 0 0 5px rgba(0,0,0,0.5);">${(route.distance / 1000).toFixed(2)} km</div>`,
+                                iconSize: [80, 20],
+                                iconAnchor: [40, 10]
+                            })
+                        }).addTo(map);
+                        
+                        // Guardar referencia a los marcadores
+                        routeMarkers[route.id] = {
+                            polyline: polyline,
+                            distanceMarker: distanceMarker
+                        };
+                    });
+                    
+                    // Actualizar UI
+                    updateDevicesList();
+                    updateDevicesTable();
+                    updateRoutesList();
+                    updateRoutesTable();
+                    updateSummary();
+                    calculateMaterials();
+                    
+                    // Mostrar contenedor de nodos si hay nodos
+                    if (nodes.length > 0) {
+                        document.getElementById('nodesContainer').classList.remove('hidden');
+                        document.getElementById('numNodes').value = nodes.length;
+                    }
+                    
+                    updateStatus(`Proyecto "${project.name}" cargado correctamente.`);
+                } catch (error) {
+                    console.error('Error al cargar el proyecto:', error);
+                    updateStatus('Error al cargar el proyecto. El archivo podría estar dañado.', 'error');
+                }
+            };
+            
+            reader.readAsText(file);
+        }
+        
+        // Limpiar proyecto actual
+        function clearProject() {
+            // Limpiar mapa
+            Object.values(deviceMarkers).forEach(marker => {
+                map.removeLayer(marker);
+            });
+            deviceMarkers = {};
+            
+            Object.values(routeMarkers).forEach(markers => {
+                map.removeLayer(markers.polyline);
+                map.removeLayer(markers.distanceMarker);
+            });
+            routeMarkers = {};
+            
+            // Limpiar variables
+            devices = [];
+            routes = [];
+            nodes = [];
+            nextDeviceId = 1;
+            nextRouteId = 1;
+            currentRoute = null;
+            isDrawingRoute = false;
+            routePoints = [];
+            routePolyline = null;
+            
+            // Limpiar UI
+            document.getElementById('nodesContainer').classList.add('hidden');
+            document.getElementById('projectName').value = '';
+            document.getElementById('projectNotes').value = '';
+            
+            updateDevicesList();
+            updateDevicesTable();
+            updateRoutesList();
+            updateRoutesTable();
+            updateSummary();
+            calculateMaterials();
+        }
+        
+        // Exportar a Excel
+        function exportToExcel() {
+            const projectName = document.getElementById('projectName').value || 'Proyecto CCTV';
+            
+            // Crear libro de Excel
+            const wb = XLSX.utils.book_new();
+            
+            // Hoja de resumen
+            const summaryData = [
+                ['Concepto', 'Valor'],
+                ['Nombre del Proyecto', projectName],
+                ['Total de Nodos', nodes.length],
+                ['Total de Cámaras', devices.filter(d => d.type === 'camera').length],
+                ['Total de Switches', devices.filter(d => d.type === 'switch').length],
+                ['Total de Otros Dispositivos', devices.filter(d => d.type !== 'camera' && d.type !== 'switch').length],
+                ['Total de Rutas', routes.length],
+                ['Longitud Total de Rutas (km)', (routes.reduce((sum, route) => sum + route.distance, 0) / 1000).toFixed(2)],
+                ['Total de Cables UTP', document.getElementById('totalUTPCables').textContent],
+                ['Total Cableado UTP (m)', document.getElementById('totalUTPCabling').textContent],
+                ['Total Tubería UTP (m)', document.getElementById('totalUTPConduit').textContent],
+                ['Total Cableado AC (m)', document.getElementById('totalACCabling').textContent],
+                ['Total Tubería AC (m)', document.getElementById('totalACConduit').textContent],
+                ['Total Tubería (UTP + AC) (m)', document.getElementById('totalConduit').textContent]
+            ];
+            
+            const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+            XLSX.utils.book_append_sheet(wb, summaryWs, 'Resumen');
+            
+            // Hoja de dispositivos
+            if (devices.length > 0) {
+                const devicesData = [
+                    ['ID', 'Nombre', 'Tipo', 'Nodo', 'Latitud', 'Longitud', 'Comentarios']
+                ];
+                
+                devices.forEach(device => {
+                    const node = device.nodeId ? nodes.find(n => n.id == device.nodeId) : null;
+                    devicesData.push([
+                        device.id,
+                        device.name,
+                        deviceTypes[device.type].label,
+                        node ? node.name : 'Sin asignar',
+                        device.lat.toFixed(6),
+                        device.lng.toFixed(6),
+                        device.comments || ''
+                    ]);
+                });
+                
+                const devicesWs = XLSX.utils.aoa_to_sheet(devicesData);
+                XLSX.utils.book_append_sheet(wb, devicesWs, 'Dispositivos');
+            }
+            
+            // Hoja de rutas
+            if (routes.length > 0) {
+                const routesData = [
+                    ['ID', 'Nombre', 'Origen', 'Destino', 'Distancia (km)']
+                ];
+                
+                routes.forEach(route => {
+                    const startDevice = route.startDevice ? devices.find(d => d.id === route.startDevice) : null;
+                    const endDevice = route.endDevice ? devices.find(d => d.id === route.endDevice) : null;
+                    
+                    routesData.push([
+                        route.id,
+                        route.name,
+                        startDevice ? startDevice.name : 'Punto inicial',
+                        endDevice ? endDevice.name : 'Punto final',
+                        (route.distance / 1000).toFixed(2)
+                    ]);
+                });
+                
+                const routesWs = XLSX.utils.aoa_to_sheet(routesData);
+                XLSX.utils.book_append_sheet(wb, routesWs, 'Rutas');
+            }
+            
+            // Hoja de nodos
+            if (nodes.length > 0) {
+                const nodesData = [
+                    ['ID', 'Nombre', 'Letra', 'Cámaras', 'Switches', 'Total Dispositivos']
+                ];
+                
+                nodes.forEach(node => {
+                    nodesData.push([
+                        node.id,
+                        node.name,
+                        node.letter,
+                        node.cameras,
+                        node.switches,
+                        node.devices.length
+                    ]);
+                });
+                
+                const nodesWs = XLSX.utils.aoa_to_sheet(nodesData);
+                XLSX.utils.book_append_sheet(wb, nodesWs, 'Nodos');
+            }
+            
+            // Hoja de notas
+            const notesData = [
+                ['Notas del Proyecto'],
+                [document.getElementById('projectNotes').value || 'Sin notas']
+            ];
+            
+            const notesWs = XLSX.utils.aoa_to_sheet(notesData);
+            XLSX.utils.book_append_sheet(wb, notesWs, 'Notas');
+            
+            // Guardar archivo
+            XLSX.writeFile(wb, `${projectName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            
+            updateStatus('Proyecto exportado a Excel correctamente.');
+        }
+        
+        // Exportar a KMZ
+        function exportToKMZ() {
+            const projectName = document.getElementById('projectName').value || 'Proyecto CCTV';
+            
+            // Crear contenido KML
+            let kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+            <kml xmlns="http://www.opengis.net/kml/2.2">
+                <Document>
+                    <name>${projectName}</name>
+                    <description>${document.getElementById('projectNotes').value || 'Proyecto CCTV'}</description>`;
+            
+            // Agregar dispositivos como marcadores
+            devices.forEach(device => {
+                const node = device.nodeId ? nodes.find(n => n.id == device.nodeId) : null;
+                kmlContent += `
+                    <Placemark>
+                        <name>${device.name}</name>
+                        <description>
+                            <![CDATA[
+                                <strong>Tipo:</strong> ${deviceTypes[device.type].label}<br>
+                                <strong>Nodo:</strong> ${node ? node.name : 'Sin asignar'}<br>
+                                <strong>Comentarios:</strong> ${device.comments || 'Sin comentarios'}
+                            ]]>
+                        </description>
+                        <styleUrl>#${device.type}-style</styleUrl>
+                        <Point>
+                            <coordinates>${device.lng},${device.lat},0</coordinates>
+                        </Point>
+                    </Placemark>`;
+            });
+            
+            // Agregar rutas como líneas
+            routes.forEach(route => {
+                const startDevice = route.startDevice ? devices.find(d => d.id === route.startDevice) : null;
+                const endDevice = route.endDevice ? devices.find(d => d.id === route.endDevice) : null;
+                
+                kmlContent += `
+                    <Placemark>
+                        <name>${route.name}</name>
+                        <description>
+                            <![CDATA[
+                                <strong>Distancia:</strong> ${(route.distance / 1000).toFixed(2)} km<br>
+                                <strong>Origen:</strong> ${startDevice ? startDevice.name : 'Punto inicial'}<br>
+                                <strong>Destino:</strong> ${endDevice ? endDevice.name : 'Punto final'}
+                            ]]>
+                        </description>
+                        <LineString>
+                            <coordinates>
+                                ${route.points.map(p => `${p.lng},${p.lat},0`).join('\n                                ')}
+                            </coordinates>
+                        </LineString>
+                    </Placemark>`;
+            });
+            
+            // Agregar estilos para los diferentes tipos de dispositivos
+            kmlContent += `
+                <Style id="camera-style">
+                    <IconStyle>
+                        <Icon>
+                            <href>https://maps.google.com/mapfiles/kml/pal4/icon57.png</href>
+                        </Icon>
+                    </IconStyle>
+                </Style>
+                <Style id="switch-style">
+                    <IconStyle>
+                        <Icon>
+                            <href>https://maps.google.com/mapfiles/kml/pal4/icon27.png</href>
+                        </Icon>
+                    </IconStyle>
+                </Style>
+                <Style id="speaker-style">
+                    <IconStyle>
+                        <Icon>
+                            <href>https://maps.google.com/mapfiles/kml/pal4/icon28.png</href>
+                        </Icon>
+                    </IconStyle>
+                </Style>
+                <Style id="monitor-style">
+                    <IconStyle>
+                        <Icon>
+                            <href>https://maps.google.com/mapfiles/kml/pal4/icon29.png</href>
+                        </Icon>
+                    </IconStyle>
+                </Style>
+                <Style id="antenna-style">
+                    <IconStyle>
+                        <Icon>
+                            <href>https://maps.google.com/mapfiles/kml/pal4/icon30.png</href>
+                        </Icon>
+                    </IconStyle>
+                </Style>
+                <Style id="solar-style">
+                    <IconStyle>
+                        <Icon>
+                            <href>https://maps.google.com/mapfiles/kml/pal4/icon31.png</href>
+                        </Icon>
+                    </IconStyle>
+                </Style>
+            </Document>
+        </kml>`;
+            
+            // Crear archivo ZIP con el KML
+            const zip = new JSZip();
+            zip.file('doc.kml', kmlContent);
+            
+            zip.generateAsync({ type: 'blob' }).then(function(content) {
+                saveAs(content, `${projectName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.kmz`);
+                updateStatus('Proyecto exportado a KMZ correctamente.');
+            });
+        }
+        
+        // Exportar con imágenes
+        function exportWithImages() {
+            const projectName = document.getElementById('projectName').value || 'Proyecto CCTV';
+            
+            // Crear libro de Excel
+            const wb = XLSX.utils.book_new();
+            
+            // Hoja de dispositivos con imágenes
+            if (devices.length > 0) {
+                const devicesData = [
+                    ['ID', 'Nombre', 'Tipo', 'Nodo', 'Latitud', 'Longitud', 'Comentarios', 'Imagen']
+                ];
+                
+                devices.forEach(device => {
+                    const node = device.nodeId ? nodes.find(n => n.id == device.nodeId) : null;
+                    devicesData.push([
+                        device.id,
+                        device.name,
+                        deviceTypes[device.type].label,
+                        node ? node.name : 'Sin asignar',
+                        device.lat.toFixed(6),
+                        device.lng.toFixed(6),
+                        device.comments || '',
+                        device.image ? `imagenes/${device.name.replace(/\s+/g, '_')}.jpg` : ''
+                    ]);
+                });
+                
+                const devicesWs = XLSX.utils.aoa_to_sheet(devicesData);
+                XLSX.utils.book_append_sheet(wb, devicesWs, 'Dispositivos');
+            }
+            
+            // Convertir libro de Excel a array buffer
+            const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            
+            // Crear archivo ZIP
+            const zip = new JSZip();
+            
+            // Agregar archivo Excel
+            zip.file(`${projectName.replace(/\s+/g, '_')}.xlsx`, excelBuffer);
+            
+            // Agregar imágenes (simuladas)
+            const imagesFolder = zip.folder('imagenes');
+            
+            // En una implementación real, aquí se agregarían las imágenes reales
+            // Por ahora, solo agregamos archivos de texto como ejemplo
+            devices.forEach(device => {
+                if (device.image) {
+                    // En una implementación real, se usaría la imagen real
+                    imagesFolder.file(`${device.name.replace(/\s+/g, '_')}.jpg`, device.image, { base64: true });
+                }
+            });
+            
+            // Generar y descargar ZIP
+            zip.generateAsync({ type: 'blob' }).then(function(content) {
+                saveAs(content, `${projectName.replace(/\s+/g, '_')}_con_imagenes.zip`);
+                updateStatus('Proyecto con imágenes exportado correctamente.');
+            });
+        }
+        
+        // Generar reporte PDF
+        function generatePDFReport() {
+            const { jsPDF } = window.jspdf;
+            const projectName = document.getElementById('projectName').value || 'Proyecto CCTV';
+            
+            // Crear documento PDF
+            const doc = new jsPDF();
+            
+            // Configurar fuentes
+            doc.setFont('helvetica');
+            
+            // Título
+            doc.setFontSize(20);
+            doc.text(projectName, 105, 20, { align: 'center' });
+            
+            // Fecha
+            doc.setFontSize(10);
+            doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' });
+            
+            // Resumen
+            doc.setFontSize(14);
+            doc.text('Resumen del Proyecto', 20, 45);
+            
+            doc.setFontSize(10);
+            let yPosition = 55;
+            
+            doc.text(`Total de Nodos: ${nodes.length}`, 20, yPosition);
+            yPosition += 7;
+            
+            doc.text(`Total de Cámaras: ${devices.filter(d => d.type === 'camera').length}`, 20, yPosition);
+            yPosition += 7;
+            
+            doc.text(`Total de Switches: ${devices.filter(d => d.type === 'switch').length}`, 20, yPosition);
+            yPosition += 7;
+            
+            doc.text(`Total de Otros Dispositivos: ${devices.filter(d => d.type !== 'camera' && d.type !== 'switch').length}`, 20, yPosition);
+            yPosition += 7;
+            
+            doc.text(`Total de Rutas: ${routes.length}`, 20, yPosition);
+            yPosition += 7;
+            
+            doc.text(`Longitud Total de Rutas: ${(routes.reduce((sum, route) => sum + route.distance, 0) / 1000).toFixed(2)} km`, 20, yPosition);
+            yPosition += 7;
+            
+            doc.text(`Total de Cables UTP: ${document.getElementById('totalUTPCables').textContent}`, 20, yPosition);
+            yPosition += 7;
+            
+            doc.text(`Total Cableado UTP: ${document.getElementById('totalUTPCabling').textContent} m`, 20, yPosition);
+            yPosition += 7;
+            
+            doc.text(`Total Tubería UTP: ${document.getElementById('totalUTPConduit').textContent} m`, 20, yPosition);
+            yPosition += 7;
+            
+            doc.text(`Total Cableado AC: ${document.getElementById('totalACCabling').textContent} m`, 20, yPosition);
+            yPosition += 7;
+            
+            doc.text(`Total Tubería AC: ${document.getElementById('totalACConduit').textContent} m`, 20, yPosition);
+            yPosition += 7;
+            
+            doc.text(`Total Tubería (UTP + AC): ${document.getElementById('totalConduit').textContent} m`, 20, yPosition);
+            yPosition += 15;
+            
+            // Dispositivos
+            if (devices.length > 0) {
+                doc.setFontSize(14);
+                doc.text('Dispositivos', 20, yPosition);
+                yPosition += 10;
+                
+                doc.setFontSize(10);
+                devices.forEach(device => {
+                    const node = device.nodeId ? nodes.find(n => n.id == device.nodeId) : null;
+                    
+                    if (yPosition > 270) {
+                        doc.addPage();
+                        yPosition = 20;
+                    }
+                    
+                    doc.text(`${device.name} - ${deviceTypes[device.type].label} ${node ? `(${node.name})` : ''}`, 20, yPosition);
+                    yPosition += 5;
+                    
+                    doc.text(`  Lat: ${device.lat.toFixed(6)}, Lng: ${device.lng.toFixed(6)}`, 25, yPosition);
+                    yPosition += 7;
+                });
+            }
+            
+            // Rutas
+            if (routes.length > 0) {
+                if (yPosition > 250) {
+                    doc.addPage();
+                    yPosition = 20;
+                }
+                
+                doc.setFontSize(14);
+                doc.text('Rutas', 20, yPosition);
+                yPosition += 10;
+                
+                doc.setFontSize(10);
+                routes.forEach(route => {
+                    const startDevice = route.startDevice ? devices.find(d => d.id === route.startDevice) : null;
+                    const endDevice = route.endDevice ? devices.find(d => d.id === route.endDevice) : null;
+                    
+                    if (yPosition > 270) {
+                        doc.addPage();
+                        yPosition = 20;
+                    }
+                    
+                    doc.text(`${route.name}: ${(route.distance / 1000).toFixed(2)} km`, 20, yPosition);
+                    yPosition += 5;
+                    
+                    doc.text(`  De: ${startDevice ? startDevice.name : 'Punto inicial'} a ${endDevice ? endDevice.name : 'Punto final'}`, 25, yPosition);
+                    yPosition += 7;
+                });
+            }
+            
+            // Notas
+            const notes = document.getElementById('projectNotes').value;
+            if (notes) {
+                if (yPosition > 250) {
+                    doc.addPage();
+                    yPosition = 20;
+                }
+                
+                doc.setFontSize(14);
+                doc.text('Notas del Proyecto', 20, yPosition);
+                yPosition += 10;
+                
+                doc.setFontSize(10);
+                const splitNotes = doc.splitTextToSize(notes, 170);
+                
+                splitNotes.forEach(line => {
+                    if (yPosition > 270) {
+                        doc.addPage();
+                        yPosition = 20;
+                    }
+                    
+                    doc.text(line, 20, yPosition);
+                    yPosition += 5;
+                });
+            }
+            
+            // Guardar PDF
+            doc.save(`${projectName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`);
+            
+            updateStatus('Reporte PDF generado correctamente.');
+        }
+        
+        // Actualizar barra de estado
+        function updateStatus(message, type = 'info') {
+            const statusBar = document.getElementById('statusBar');
+            statusBar.textContent = message;
+            
+            // Cambiar color según tipo
+            statusBar.style.backgroundColor = type === 'error' ? '#ffebee' : '#e3f2fd';
+            statusBar.style.color = type === 'error' ? '#d32f2f' : '#0d47a1';
+        }
+    </script>
 </body>
 </html>
